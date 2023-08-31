@@ -1,0 +1,123 @@
+# Input file
+
+start parameters
+    nItr = 1E9 #iterations
+    timeStep = 0.3 #in us
+    timeWrite = 1000
+    trajWrite = 100000
+	pdbWrite = 100000
+    restartWrite = 1000000
+    checkPoint = 5000000
+	scaleMaxDisplace = 10.0	
+    overlapSepLimit = 1.0
+end parameters
+
+start boundaries
+    WaterBox = [118.41,118.41,118.41] #nm, for 1uM
+end boundaries
+
+start molecules
+    A : 100
+    B : 100
+    C : 100
+end molecules
+
+start reactions
+	    
+    #Same sites - Dimer reactions
+    A(a1,a2) + B(b1,b2) <-> A(a1!1,a2).B(b1,b2!1)
+    onRate3DMacro = 1.0  #ka
+    offRatekb = 0.00206 #kb
+    norm1 = [0, 4.17774579, -6.75973469]
+    norm2 = [0, 4.17774579, -6.75973469]
+    sigma = 1.0
+    assocAngles = [2.58801829,2.58801829,0,0,0]
+    bindRadSameCom = 1.5
+    loopCoopFactor = 1.0
+    
+
+    A(a1,a2) + C(c1,c2) <-> A(a1,a2!1).C(c1!1,c2)
+    onRate3DMacro = 1.0  #ka
+    offRatekb = 0.00206 #kb
+    norm1 = [0, 4.17774579, -6.75973469]
+    norm2 = [0, 4.17774579, -6.75973469]
+    sigma = 1.0
+    assocAngles = [2.58801829,2.58801829,0,0,0]
+    bindRadSameCom = 1.5
+    loopCoopFactor = 1.0
+    
+
+    C(c1,c2) + B(b1,b2) <-> C(c1,c2!1).B(b1!1,b2)
+    onRate3DMacro = 1.0  #ka
+    offRatekb = 0.00206 #kb
+    norm1 = [0, 4.17774579, -6.75973469]
+    norm2 = [0, 4.17774579, -6.75973469]
+    sigma = 1.0
+    assocAngles = [2.58801829,2.58801829,0,0,0]
+    bindRadSameCom = 1.5
+    loopCoopFactor = 1.0
+    
+    #Trimer reactions
+    #AB + C -> ABC
+    A(a1!*,a2) + C(c1) <-> A(a1!*,a2!1).C(c1!1)
+    onRate3DMacro = 0.5  #ka
+    offRatekb = 0.00206 #kb
+    norm1 = [0, 4.17774579, -6.75973469]
+    norm2 = [0, 4.17774579, -6.75973469]
+    sigma = 1.0
+    assocAngles = [2.58801829,2.58801829,0,0,0]
+    bindRadSameCom = 1.5
+    loopCoopFactor = 1.0
+
+    B(b1,b2!*) + C(c2) <-> B(b1!1,b2!*).C(c2!1)
+    onRate3DMacro = 0.5  #ka
+    offRatekb = 0.00206 #kb
+    norm1 = [0, 4.17774579, -6.75973469]
+    norm2 = [0, 4.17774579, -6.75973469]
+    sigma = 1.0
+    assocAngles = [2.58801829,2.58801829,0,0,0]
+    bindRadSameCom = 1.5
+    loopCoopFactor = 1.0
+     
+    #AC + B -> ABC
+    C(c1!*,c2) + B(b1) <-> C(c1!*,c2!1).B(b1!1)
+    onRate3DMacro = 0.5  #ka
+    offRatekb = 0.00206 #kb
+    norm1 = [0, 4.17774579, -6.75973469]
+    norm2 = [0, 4.17774579, -6.75973469]
+    sigma = 1.0
+    assocAngles = [2.58801829,2.58801829,0,0,0]
+    bindRadSameCom = 1.5
+    loopCoopFactor = 1.0
+    
+    A(a1,a2!*) + B(b2) <-> A(a1!1,a2!*).B(b2!1)
+    onRate3DMacro = 0.5  #ka
+    offRatekb = 0.00206 #kb
+    norm1 = [0, 4.17774579, -6.75973469]
+    norm2 = [0, 4.17774579, -6.75973469]
+    sigma = 1.0
+    assocAngles = [2.58801829,2.58801829,0,0,0]
+    bindRadSameCom = 1.5
+    loopCoopFactor = 1.0
+    
+    #BC + A -> ABC
+    C(c1,c2!*) + A(a2) <-> C(c1!1,c2!*).A(a2!1)
+    onRate3DMacro = 0.5  #ka
+    offRatekb = 0.00206 #kb
+    norm1 = [0, 4.17774579, -6.75973469]
+    norm2 = [0, 4.17774579, -6.75973469]
+    sigma = 1.0
+    assocAngles = [2.58801829,2.58801829,0,0,0]
+    bindRadSameCom = 1.5
+    loopCoopFactor = 1.0
+    
+    B(b1!*,b2) + A(a1) <-> B(b1!*,b2!1).A(a1!1)
+    onRate3DMacro = 0.5  #ka
+    offRatekb = 0.00206 #kb
+    norm1 = [0, 4.17774579, -6.75973469]
+    norm2 = [0, 4.17774579, -6.75973469]
+    sigma = 1.0
+    assocAngles = [2.58801829,2.58801829,0,0,0]
+    bindRadSameCom = 1.5
+    loopCoopFactor = 1.0
+end reactions

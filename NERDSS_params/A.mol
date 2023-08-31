@@ -1,0 +1,25 @@
+##
+# Dodechehedron molecule information file.
+##
+
+Name = A
+checkOverlap = true
+countTransition = true
+transitionMatrixSize = 20
+
+# translational diffusion constants
+D = [22.0, 22.0, 22.0]
+
+# rotational diffusion constants
+Dr = [0.17, 0.17, 0.17]
+
+# Coordinates
+COM   0.0000000   0.0000000   0.0000000
+a1  -4.1118448   1.13648595  0.70238695
+a2  -2.54125984 -2.97535885 -1.8388729
+
+# bonds
+bonds = 2
+com a1
+com a2
+
