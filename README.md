@@ -6,7 +6,7 @@ Python code for numerical simulations of self-assemly with optimization by autom
 The easiest way to install the simulator is to clone this repo and then build an environment containing all dependencies using the provided `base_requirements.txt` file. In order to do this you will need to have an up to date version of the anaconda package manager (https://www.anaconda.com/products/individual#Downloads). 
 
 - first clone this repository into the desired directory on your system. `git clone git@github.com:mjohn218/multi_assembly.git`
-- navigate to the `steric_free_simulator` directory and run `conda create --name <env> --file base_requirements.txt` where `<env>` is the desired name of your new environment. *NOTE: This requirements file only includes dependencies available from conda or pip. For any application involving rosetta, for example estimating free energies from pdb structures, you will need to also install pyrosetta to your environment from http://www.pyrosetta.org/*
+- From the current directory and run `conda create --name <env> --file base_requirements.txt` where `<env>` is the desired name of your new environment. *NOTE: This requirements file only includes dependencies available from conda or pip. For any application involving rosetta, for example estimating free energies from pdb structures, you will need to also install pyrosetta to your environment from http://www.pyrosetta.org/*
 - now run `conda activate <env>` in order to use the new environment. 
 - you may now use the included modules.
 
