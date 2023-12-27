@@ -10,14 +10,19 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.optim.lr_scheduler import MultiplicativeLR
 import random
 
-
-
 class Optimizer:
     def __init__(self, reaction_network,
                  sim_runtime: float,
                  optim_iterations: int,
-                 learning_rate,
-                 device='cpu',method='Adam',lr_change_step=None,gamma=None,mom=0,random_lr=False):
+                 learning_rate: float,
+                 device='cpu',
+                 method='Adam',
+                 lr_change_step=None,
+                 gamma=None,
+                 mom=0,
+                 random_lr=False):
+        
+        # Load device for PyTorch (e.g. GPU or CPU)
         if torch.cuda.is_available() and "cpu" not in device:
             self.dev = torch.device(device)
             print("Using " + device)
@@ -26,18 +31,19 @@ class Optimizer:
             device = 'cpu'
             print("Using CPU")
         self._dev_name = device
+
         self.sim_class = VecSim
         if type(reaction_network) is not VectorizedRxnNet:
             try:
                 self.rn = VectorizedRxnNet(reaction_network, dev=self.dev)
             except Exception:
-                raise TypeError(" Must be type ReactionNetwork or VectorizedRxnNetwork.")
+                raise TypeError("Must be type ReactionNetwork or VectorizedRxnNetwork.")
         else:
             self.rn = reaction_network
         self.sim_runtime = sim_runtime
         param_itr = self.rn.get_params()
 
-        if method =='Adam':
+        if method == 'Adam':
             if self.rn.partial_opt:
                 params_list=[]
                 self.lr_group=[]
@@ -113,8 +119,8 @@ class Optimizer:
             if self.rn.assoc_is_param:
                 if self.rn.partial_opt:
                     self.scheduler = MultiplicativeLR(self.optimizer,lr_lambda=[self.creat_lambda for i in range(len(self.rn.params_kon))])
-                    self.lambda_ct=-1
-                    self.gamma=gamma
+                    self.lambda_ct = -1
+                    self.gamma = gamma
                 else:
                     self.scheduler = MultiplicativeLR(self.optimizer,lr_lambda=self.assoc_lambda)
             if self.rn.chap_is_param:
@@ -122,49 +128,48 @@ class Optimizer:
             else:
                 self.lr_change_step = None
 
-    def assoc_lambda(self,opt_itr):
-        new_lr = torch.min(self.rn.kon).item()*self.lr
+    def assoc_lambda(self, opt_itr):
+        new_lr = torch.min(self.rn.kon).item() * self.lr
         curr_lr = self.optimizer.state_dict()['param_groups'][0]['lr']
-        return(new_lr/curr_lr)
-    def creat_lambda(self,opt_itr):
+        return(new_lr / curr_lr)
+    def creat_lambda(self, opt_itr):
         return(self.gamma)
-    def lambda1(self,opt_itr):
-        new_lr = torch.min(self.rn.params_k[0]).item()*self.lr
+    def lambda1(self, opt_itr):
+        new_lr = torch.min(self.rn.params_k[0]).item() * self.lr
         curr_lr = self.optimizer.state_dict()['param_groups'][0]['lr']
         return(new_lr/curr_lr)
-    def lambda2(self,opt_itr):
-        new_lr = torch.min(self.rn.params_k).item()*self.lr
+    def lambda2(self, opt_itr):
+        new_lr = torch.min(self.rn.params_k).item() * self.lr
         curr_lr = self.optimizer.state_dict()['param_groups'][0]['lr']
-        return(new_lr/curr_lr)
-
-    def lambda_c(self,opt_itr):
-        new_lr = torch.min(self.rn.chap_params[0]).item()*100*self.lr
+        return(new_lr / curr_lr)
+    def lambda_c(self, opt_itr):
+        new_lr = torch.min(self.rn.chap_params[0]).item() * 100 * self.lr
         curr_lr = self.optimizer.state_dict()['param_groups'][0]['lr']
-        return(new_lr/curr_lr)
-
-    def lambda_k(self,opt_itr):
-        new_lr = torch.min(self.rn.chap_params[1]).item()*self.lr
+        return(new_lr / curr_lr)
+    def lambda_k(self, opt_itr):
+        new_lr = torch.min(self.rn.chap_params[1]).item() * self.lr
         curr_lr = self.optimizer.state_dict()['param_groups'][1]['lr']
-        return(new_lr/curr_lr)
-    def lambda5(self,opt_itr):
-        new_lr = torch.min(self.rn.params_k[2]).item()*self.lr_group[2]
+        return(new_lr / curr_lr)
+    def lambda5(self, opt_itr):
+        new_lr = torch.min(self.rn.params_k[2]).item() * self.lr_group[2]
         curr_lr = self.optimizer.state_dict()['param_groups'][2]['lr']
-        return(new_lr/curr_lr)
+        return(new_lr / curr_lr)
 
-    def update_counter(self):
-        lr_ct =1
+    def update_counter(self): # Currently does nothing
+        lr_ct = 1
         # if self.counter == len(self.rn.params_k):
         #     self.counter=0
-    def lambda_master(self,opt_itr):
+
+    def lambda_master(self, opt_itr):
         # update_counter()
         # print("***** LAMBDA MASTER:  {:d}*****".format(self.lambda_counter))
         # self.counter+=
-        self.lambda_ct+=1
-        return(torch.min(self.rn.params_k[self.lambda_ct%len(self.rn.params_k)]).item()*self.lr_group[self.lambda_ct%len(self.rn.params_k)]/self.optimizer.state_dict()['param_groups'][self.lambda_ct%len(self.rn.params_k)]['lr'])
+        self.lambda_ct += 1
+        return(torch.min(self.rn.params_k[self.lambda_ct % len(self.rn.params_k)]).\
+               item() * self.lr_group[self.lambda_ct%len(self.rn.params_k)] / \
+                self.optimizer.state_dict()['param_groups'][self.lambda_ct % len(self.rn.params_k)]['lr'])
 
-
-
-    def plot_observable(self, iteration, nodes_list,ax=None):
+    def plot_observable(self, iteration, nodes_list, ax=None):
         t = self.sim_observables[iteration]['steps']
 
         for key in self.sim_observables[iteration].keys():
@@ -194,17 +199,33 @@ class Optimizer:
         plt.title = 'Yield at each iteration'
         plt.show()
 
-    def optimize(self,optim='yield',node_str=None,max_yield=0.5,corr_rxns=[[1],[5]],max_thresh=10,lowvar=False,conc_scale=1.0,mod_factor=1.0,conc_thresh=1e-5,mod_bool=True,verbose=False,change_runtime=False,yield_species=-1,creat_yield=-1,varBool=True,chap_mode=1,change_lr_yield=0.98,var_thresh=10):
+    def optimize(self,optim='yield', 
+                 node_str=None,
+                 max_yield=0.5,
+                 corr_rxns=[[1],[5]],
+                 max_thresh=10,
+                 lowvar=False,
+                 conc_scale=1.0,
+                 mod_factor=1.0,
+                 conc_thresh=1e-5,
+                 mod_bool=True,
+                 verbose=False,
+                 change_runtime=False,
+                 yield_species=-1,
+                 creat_yield=-1,
+                 varBool=True,
+                 chap_mode=1,
+                 change_lr_yield=0.98,
+                 var_thresh=10):
         print("Reaction Parameters before optimization: ")
         print(self.rn.get_params())
 
-        print("Optimizer State:",self.optimizer.state_dict)
-        counter = 0
-        calc_flux_optim=False
-        if optim=='flux_coeff':
-            calc_flux_optim=True
+        print("Optimizer State:", self.optimizer.state_dict)
+        calc_flux_optim = False
+        if optim == 'flux_coeff':
+            calc_flux_optim = True
         for i in range(self.optim_iterations):
-            # reset for new simulator
+            # Reset for new simulator
             self.rn.reset()
 
             if self.rn.boolCreation_rxn and change_runtime:
@@ -215,32 +236,59 @@ class Optimizer:
                 rates = np.array(self.rn.get_params())
                 titration_end = final_conc/rates
 
-                titration_time_map ={v['uid'] : final_conc/v['k_on'] for v in self.rn.creation_rxn_data.values()}
+                titration_time_map = {v['uid'] : final_conc / v['k_on'] 
+                                      for v in self.rn.creation_rxn_data.values()}
                 for r in range(len(rates)):
                     titration_time_map[self.rn.optim_rates[r]]  = titration_end[r]
                 self.rn.titration_time_map=titration_time_map
                 # print("Titration Map : ",self.rn.titration_end_time)
-                new_runtime=np.max(list(titration_time_map.values()))+self.sim_runtime
-                print("New Runtime: ",new_runtime)
+                new_runtime = np.max(list(titration_time_map.values())) + self.sim_runtime
+                print("New Runtime:", new_runtime)
                 sim = self.sim_class(self.rn,
                                      new_runtime,
-                                     device=self._dev_name,calc_flux=calc_flux_optim)
+                                     device=self._dev_name,
+                                     calc_flux=calc_flux_optim)
                 # print(sim.calc_flux)
             else:
                 sim = self.sim_class(self.rn,
                                      self.sim_runtime,
-                                     device=self._dev_name,calc_flux=calc_flux_optim)
+                                     device=self._dev_name,
+                                     calc_flux=calc_flux_optim)
 
-
-            # preform simulation
+            # Perform simulation
             self.optimizer.zero_grad()
             if self.rn.boolCreation_rxn:
-
-                total_yield,cur_time,unused_monomer,total_flux = sim.simulate(optim,node_str,corr_rxns=corr_rxns,conc_scale=conc_scale,mod_factor=mod_factor,conc_thresh=conc_thresh,mod_bool=mod_bool,verbose=verbose)
+                total_yield, cur_time,unused_monomer, total_flux = \
+                    sim.simulate(optim,
+                                 node_str,
+                                 corr_rxns=corr_rxns,
+                                 conc_scale=conc_scale,
+                                 mod_factor=mod_factor,
+                                 conc_thresh=conc_thresh,
+                                 mod_bool=mod_bool,
+                                 verbose=verbose)
             elif self.rn.chaperone:
-                total_yield,dimer_yield,chap_sp_yield,dimer_max,chap_max,endtime,total_flux = sim.simulate(optim,node_str,corr_rxns=corr_rxns,conc_scale=conc_scale,mod_factor=mod_factor,conc_thresh=conc_thresh,mod_bool=mod_bool,verbose=verbose,yield_species=yield_species)
+                total_yield, dimer_yield, chap_sp_yield, dimer_max, chap_max, endtime, total_flux = \
+                    sim.simulate(optim,
+                                 node_str,
+                                 corr_rxns=corr_rxns,
+                                 conc_scale=conc_scale,
+                                 mod_factor=mod_factor,
+                                 conc_thresh=conc_thresh,
+                                 mod_bool=mod_bool,
+                                 verbose=verbose,
+                                 yield_species=yield_species)
             else:
-                total_yield,total_flux = sim.simulate(optim,node_str,corr_rxns=corr_rxns,conc_scale=conc_scale,mod_factor=mod_factor,conc_thresh=conc_thresh,mod_bool=mod_bool,verbose=verbose,yield_species=yield_species)
+                total_yield, total_flux = \
+                    sim.simulate(optim,
+                                 node_str,
+                                 corr_rxns=corr_rxns,
+                                 conc_scale=conc_scale,
+                                 mod_factor=mod_factor,
+                                 conc_thresh=conc_thresh,
+                                 mod_bool=mod_bool,
+                                 verbose=verbose,
+                                 yield_species=yield_species)
             #print("Type/class of yield: ", type(total_yield))
 
             #Check change in yield from last gradient step. Break if less than a tolerance
@@ -262,11 +310,12 @@ class Optimizer:
 
 
 
-            if optim =='yield' or optim=='time':
-                if optim=='yield':
-                    print('yield on sim iteration ' + str(i) + ' was ' + str(total_yield.item() * 100)[:4] + '%')
-                elif optim=='time':
-                    print('yield on sim iteration ' + str(i) + ' was ' + str(total_yield.item() * 100)[:4] + '%' + '\tTime : ',str(cur_time))
+            if optim in ['yield', 'time']:
+                if optim == 'yield':
+                    print(f'Yield on sim. iteration {i} was f{str(total_yield.item() * 100)[:4]}%.')
+                elif optim == 'time':
+                    print(f'Yield on sim iteration {i} was {str(total_yield.item() * 100)[:4]}%' + \
+                          '\tTime :', str(cur_time))
                 # print(self.rn.copies_vec)
                 # preform gradient step
                 if i != self.optim_iterations - 1:
@@ -303,7 +352,7 @@ class Optimizer:
                         new_params = [p.clone().detach() for p in self.rn.params_kon]
                         # for r in range(len(self.rn.params_kon)):
                         #     print("Is leaf : ",self.rn.params_kon[r].is_leaf, "Grad: ",self.rn.params_kon[r].requires_grad)
-                            # self.rn.kon[self.rn.optim_rates[r]] = self.rn.params_kon[r]
+                        #     self.rn.kon[self.rn.optim_rates[r]] = self.rn.params_kon[r]
                     elif self.rn.homo_rates and self.rn.assoc_is_param:
                         new_params = self.rn.params_kon.clone().detach()
                     elif self.rn.copies_is_param:
@@ -313,12 +362,13 @@ class Optimizer:
                     elif self.rn.dissoc_is_param:
                         if self.rn.partial_opt:
                             new_params = self.rn.params_koff.clone().detach()
-                            self.rn.params_kon = self.rn.params_koff/(self.rn._C0*torch.exp(self.rn.params_rxn_score_vec))
+                            self.rn.params_kon = self.rn.params_koff / \
+                                (self.rn._C0 * torch.exp(self.rn.params_rxn_score_vec))
                             for r in range(len(new_params)):
                                 self.rn.kon[self.rn.optim_rates[r]] = self.rn.params_kon[r]
-                            print("Current On rates: ", self.rn.kon)
+                            print("Current On rates:", self.rn.kon)
                         else:
-                            print("Current On rates: ", torch.exp(k)[:len(self.rn.kon)])
+                            print("Current On rates:", torch.exp(k)[:len(self.rn.kon)])
                             new_params = [l.clone().detach() for l in self.rn.params_koff]
                     elif self.rn.dG_is_param:
                         # print("Current On rates: ", torch.exp(k)[:len(self.rn.kon)])
@@ -328,12 +378,11 @@ class Optimizer:
                         else:
                             new_params = [l.clone().detach() for l in self.rn.params_k]
                             # new_params = self.rn.params_k.clone().detach()
-
                     else:
                         new_params = self.rn.kon.clone().detach()
                     #print('New reaction rates: ' + str(self.rn.kon.clone().detach()))
                     # new_params = self.rn.kon.clone().detach()
-                    print('current params: ' + str(new_params))
+                    print('current params:', str(new_params))
                     #Store yield and params data
                     if total_yield-max_yield > 0:
                         if self.rn.chap_is_param:
@@ -343,7 +392,6 @@ class Optimizer:
                             self.endtimes.append(endtime)
                         else:
                             self.final_yields.append(total_yield)
-
 
                         self.final_solns.append(new_params)
                         self.final_t50.append(total_flux[0])
@@ -535,9 +583,9 @@ class Optimizer:
             #         new_params = self.rn.kon.clone().detach()
             #         print('current params: ' + str(new_params))
 
-            elif optim=='flux_coeff':
+            elif optim == 'flux_coeff':
                 print("Optimizing Flux Correlations")
-                print('yield on sim iteration ' + str(i) + ' was ' + str(total_yield.item()))
+                print(f'Yield on sim iteration {i} was {total_yield.item()}.')
                 if i != self.optim_iterations - 1:
                         k = torch.exp(self.rn.compute_log_constants(self.rn.kon, self.rn.rxn_score_vec,
                                                                     scalar_modifier=1.))
@@ -568,7 +616,6 @@ class Optimizer:
                 return self.rn
 
             del sim
-
 
 if __name__ == '__main__':
     from steric_free_simulator import ReactionNetwork
