@@ -624,7 +624,7 @@ if __name__ == '__main__':
     rn.reset()
     rn.intialize_activations()
     optim = Optimizer(reaction_network=rn,
-                      sim_runtime=.001,
+                      sim_runtime=.001, # this comment is a test
                       optim_iterations=10,
                       learning_rate=10,)
     vec_rn = optim.optimize()
