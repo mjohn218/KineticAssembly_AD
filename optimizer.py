@@ -13,7 +13,6 @@ import random
 
 
 class Optimizer:
-
     def __init__(self, reaction_network,
                  sim_runtime: float,
                  optim_iterations: int,
@@ -121,7 +120,7 @@ class Optimizer:
             if self.rn.chap_is_param:
                 self.scheduler = MultiplicativeLR(self.optimizer,lr_lambda=[self.lambda_c,self.lambda_k])
             else:
-            self.lr_change_step = None
+                self.lr_change_step = None
 
     def assoc_lambda(self,opt_itr):
         new_lr = torch.min(self.rn.kon).item()*self.lr
