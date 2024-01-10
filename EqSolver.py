@@ -1,5 +1,5 @@
-from steric_free_simulator import ReactionNetwork
-from steric_free_simulator.reaction_network import gtostr
+from KineticAssembly_AD import ReactionNetwork
+from KineticAssembly_AD.reaction_network import gtostr
 import numpy as np
 from typing import Tuple, Union
 

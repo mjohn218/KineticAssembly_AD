@@ -1,6 +1,6 @@
 
-from steric_free_simulator.vec_sim import VecSim
-from steric_free_simulator import ReactionNetwork
+from KineticAssembly_AD.vec_sim import VecSim
+from KineticAssembly_AD import ReactionNetwork
 import numpy as np
 
 from torch import DoubleTensor as Tensor

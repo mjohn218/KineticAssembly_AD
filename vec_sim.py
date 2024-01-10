@@ -1,5 +1,5 @@
-from steric_free_simulator.vectorized_rxn_net import VectorizedRxnNet
-from steric_free_simulator import ReactionNetwork
+from KineticAssembly_AD.vectorized_rxn_net import VectorizedRxnNet
+from KineticAssembly_AD import ReactionNetwork
 import numpy as np
 
 from torch import DoubleTensor as Tensor
@@ -581,6 +581,188 @@ class VecSim:
                 return(final_yield.to(self.dev),dimer_yield_sum,chap_species_sum,dimer_max_yields_arr,chap_max_yields_arr,self.steps[-1],(t50,t85,t95,t99))
             else:
                 return(final_yield.to(self.dev),(t50,t85,t95,t99))
+
+    def simulate_wrt_expdata(self, optim='yield',node_str=None,verbose=False,conc_scale=1.0,mod_factor=1.0,conc_thresh=1e-5,mod_bool=True,yield_species=-1):
+        """
+        modifies reaction network
+        :return:
+        """
+        cur_time = 0
+        prev_time=0
+        self.cur_time=Tensor([0.])
+        cutoff = 10000000
+        mod_flag = True
+        n_steps=0
+        conc_tensor=[]
+
+
+        values = psutil.virtual_memory()
+        print("Start of simulation: memory Used: ",values.percent)
+
+        # update observables
+        max_poss_yield = torch.min(self.rn.copies_vec[:self.rn.num_monomers].clone()).to(self.dev)
+
+        if self.rn.max_subunits !=-1:
+            max_poss_yield = max_poss_yield/self.rn.max_subunits
+            if verbose:
+                print("Max Poss Yield: ",max_poss_yield)
+        t95_flag=True
+        t85_flag=True
+        t50_flag=True
+        t99_flag=True
+        t85=-1
+        t95=-1
+        t50=-1
+        t99=-1
+
+        l_k = self.rn.compute_log_constants(self.rn.kon, self.rn.rxn_score_vec, self._constant)
+        if verbose:
+            print("Simulation rates: ",torch.exp(l_k))
+
+        while cur_time < self.runtime:
+            conc_counter=1
+
+            l_conc_prod_vec = self.rn.get_log_copy_prod_vector()
+
+            l_rxn_rates = l_conc_prod_vec + l_k
+            l_total_rate = torch.logsumexp(l_rxn_rates, dim=0)
+            l_step = 0 - l_total_rate
+            rate_step = torch.exp(l_rxn_rates + l_step)
+            delta_copies = torch.matmul(self.rn.M, rate_step)*conc_scale
+
+            if (torch.min(self.rn.copies_vec + delta_copies) < 0):
+                if conc_scale>conc_thresh:
+                    conc_scale = conc_scale/mod_factor
+                    delta_copies = torch.matmul(self.rn.M, rate_step)*conc_scale
+                elif mod_bool:
+                    temp_copies = self.rn.copies_vec + delta_copies
+                    mask_neg = temp_copies<0
+
+                    zeros = torch.zeros([len(delta_copies)],dtype=torch.double,device=self.dev)
+                    neg_species = torch.where(mask_neg,delta_copies,zeros)   #Get delta copies of all species that have neg copies
+                    min_value = self.rn.copies_vec
+
+                    modulator = torch.abs(neg_species)/min_value
+                    min_modulator = torch.max(modulator[torch.nonzero(modulator)])   #Taking the smallest modulator
+                    l_total_rate = l_total_rate - torch.log(0.99/min_modulator)
+                    l_step = 0 - l_total_rate
+                    rate_step = torch.exp(l_rxn_rates + l_step)
+                    delta_copies = torch.matmul(self.rn.M, rate_step)*conc_scale
+                    if mod_flag:
+                        self.mod_start=cur_time
+                        mod_flag=False
+            initial_monomers = self.rn.initial_copies
+            min_copies = torch.ones(self.rn.copies_vec.shape, device=self.dev) * np.inf
+            min_copies[0:initial_monomers.shape[0]] = initial_monomers
+            self.rn.copies_vec = torch.max(self.rn.copies_vec + delta_copies, torch.zeros(self.rn.copies_vec.shape,
+                                                                                          dtype=torch.double,
+                                                                                          device=self.dev))
+
+            step = torch.exp(l_step)
+            if self.rate_step:
+                self.rate_step_array.append(rate_step)
+
+
+            #Calculating total amount of each species titrated. Required for calculating yield
+            if self.rn.boolCreation_rxn:
+                for node,data in self.rn.creation_rxn_data.items():
+                    cr_rid = data['uid']
+                    curr_path_contri = rate_step[cr_rid].detach().numpy()
+                    creation_amount[node]+=  np.sum(curr_path_contri)*conc_scale
+
+            if cur_time + step*conc_scale > self.runtime:
+                # print("Current time: ",cur_time)
+                if optim=='time':
+                    # print("Exceeding time",t95_flag)
+                    if t95_flag:
+                        #Yield has not yeached 95%
+                        print("Yield has not reached 95 %. Increasing simulation time")
+                        self.runtime=(cur_time + step*conc_scale)*2
+                        continue
+                if self.rn.copies_vec[yield_species]/max_poss_yield > 0.5 and t50_flag:
+                    t50=cur_time
+                    t50_flag=False
+                if self.rn.copies_vec[yield_species]/max_poss_yield > 0.85 and t85_flag:
+                    t85=cur_time
+                    t85_flag=False
+                if self.rn.copies_vec[yield_species]/max_poss_yield > 0.95 and t95_flag:
+                    t95=cur_time
+                    t95_flag=False
+                if self.rn.copies_vec[yield_species]/max_poss_yield > 0.99 and t99_flag:
+                    t99=cur_time
+                    t99_flag=False
+                print("Next time: ",cur_time + step*conc_scale)
+                # print("Curr_time:",cur_time)
+                if verbose:
+                    # print("Mass Conservation T: ",self.rn.copies_vec[4]+self.rn.copies_vec[16])
+                    print("Final Conc Scale: ",conc_scale)
+                    print("Number of steps: ", n_steps)
+                    print("Next time larger than simulation runtime. Ending simulation.")
+                    values = psutil.virtual_memory()
+                    print("Memory Used: ",values.percent)
+                    print("RAM Usage (GB): ",values.used/(1024*1024*1024))
+
+
+
+            cur_time = cur_time + step*conc_scale
+            self.cur_time = cur_time
+            n_steps+=1
+
+
+            if self.rn.copies_vec[yield_species]/max_poss_yield > 0.5 and t50_flag:
+                t50=cur_time
+                t50_flag=False
+            if self.rn.copies_vec[yield_species]/max_poss_yield > 0.85 and t85_flag:
+                t85=cur_time
+                t85_flag=False
+            if self.rn.copies_vec[yield_species]/max_poss_yield > 0.95 and t95_flag:
+                # print("95% yield reached: ",self.rn.copies_vec[yield_species]/max_poss_yield)
+                t95=cur_time
+                t95_flag=False
+            if self.rn.copies_vec[yield_species]/max_poss_yield > 0.99 and t99_flag:
+                t99=cur_time
+                t99_flag=False
+
+            if n_steps>1:
+                self.steps.append(cur_time.item())
+                for obs in self.rn.observables.keys():
+                    try:
+                        self.rn.observables[obs][1].append(self.rn.copies_vec[int(obs)].item())
+                        #self.flux_vs_time[obs][1].append(self.net_flux[self.flux_vs_time[obs][0]])
+                    except IndexError:
+                        print('bkpt')
+
+                prev_time=cur_time
+
+                # print(conc_tensor.shape)
+                # print(conc_tensor)
+                # print(self.rn.copies_vec[yield_species])
+                # conc_tensor = torch.cat((conc_tensor,self.rn.copies_vec[yield_species]),dim=0)
+
+            if n_steps==1:
+                prev_time = cur_time
+                # conc_tensor = torch.Tensor([self.rn.copies_vec[yield_species]])
+
+            if len(self.steps) > cutoff:
+                print("WARNING: sim was stopped early due to exceeding set max steps", sys.stderr)
+                break
+            if n_steps%10000==0:
+                if verbose:
+                    values = psutil.virtual_memory()
+                    print("Memory Used: ",values.percent)
+                    print("RAM Usage (GB): ",values.used/(1024*1024*1024))
+                    print("Current Time: ",cur_time)
+
+            total_complete = self.rn.copies_vec[yield_species]/max_poss_yield
+            conc_tensor.append(self.rn.copies_vec[yield_species].clone())
+
+        final_yield = total_complete
+
+
+        if verbose:
+            print("Final Yield: ", final_yield)
+
+        return(final_yield.to(self.dev),conc_tensor,(t50,t85,t95,t99))
 
     def plot_observable(self,nodes_list, ax=None,flux=False,legend=True,seed=None,color_input=None,lw=1.0):
         t = np.array(self.steps)

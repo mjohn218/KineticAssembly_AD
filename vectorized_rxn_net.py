@@ -1,7 +1,7 @@
 from typing import Tuple
 
-from steric_free_simulator import ReactionNetwork
-from steric_free_simulator import reaction_network as RN
+from KineticAssembly_AD import ReactionNetwork
+from KineticAssembly_AD import reaction_network as RN
 
 import networkx as nx
 

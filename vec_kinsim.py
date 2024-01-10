@@ -1,5 +1,5 @@
-from steric_free_simulator.vectorized_rxn_net_KinSim import VectorizedRxnNet_KinSim
-from steric_free_simulator import ReactionNetwork
+from KineticAssembly_AD.vectorized_rxn_net_KinSim import VectorizedRxnNet_KinSim
+from KineticAssembly_AD import ReactionNetwork
 import numpy as np
 
 from torch import DoubleTensor as Tensor
