@@ -47,9 +47,9 @@ class ReactionNetwork:
     energy scores, all encoded in an attributed directed acyclic graph.
     The reaction network also stores optimization parameters explicitly in the parameters
     attribute.
-    More then just being a container for reaction data, the ReactionNetwork class provides
-    methods to build a network that prohibits stericly hindered interactions from a simple
-    bngl file containing just pairwise interactions.
+    More than just being a container for reaction data, the ReactionNetwork class provides
+    methods to build a network that prohibits sterically hindered interactions from a simple
+    .bngl file containing just pairwise interactions.
 
     Attributes:
         network: nx.DiGraph
