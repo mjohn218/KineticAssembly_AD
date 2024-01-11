@@ -77,7 +77,7 @@ class ReactionNetwork:
         :param bngl_path: path to bngl containing pairwise interactions.
         :param one_step: whether this reaction network should be built as one step or two step
         """
-        self.network: nx.DiGraph() = nx.DiGraph()
+        self.network: nx.DiGraph() = nx.DiGraph() # TODO: This type hint seems incorrect. Why would a function's return type equal itself?
         self.allowed_edges = {}
         self._node_count = 0
         self._rxn_count = 0

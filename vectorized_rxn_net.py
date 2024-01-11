@@ -16,14 +16,15 @@ class VectorizedRxnNet:
     """
     Provides a lightweight class that represents the core information needed for
     simulation as torch tensors. Acts as a base object for optimization simulations.
-    Data structure is performance optimized, not easily readable / accessible.
+    Data structure is performance optimized, not easily readable/accessible.
 
     Units:
     units of Kon assumed to be [copies]-1 S-1, units of Koff S-1
     units of reaction scores are treated as J * c / mol where c is a user defined scalar
     """
 
-    def __init__(self, rn: ReactionNetwork, 
+    def __init__(self, 
+                 rn: ReactionNetwork, 
                  assoc_is_param=True, 
                  copies_is_param=False, 
                  chap_is_param=False,
