@@ -622,7 +622,20 @@ class Optimizer:
             del sim
 
 
-    def optimize_wrt_expdata(self,optim='yield',node_str=None,max_yield=0.5,max_thresh=10,conc_scale=1.0,mod_factor=1.0,conc_thresh=1e-5,mod_bool=True,verbose=False,yield_species=-1,conc_files_pref=None,conc_files_range=[],time_threshmax=1):
+    def optimize_wrt_expdata(self,
+                             optim='yield',
+                             node_str=None,
+                             max_yield=0.5,
+                             max_thresh=10,
+                             conc_scale=1.0,
+                             mod_factor=1.0,
+                             conc_thresh=1e-5,
+                             mod_bool=True,
+                             verbose=False,
+                             yield_species=-1,
+                             conc_files_pref=None,
+                             conc_files_range=[],
+                             time_threshmax=1):
         print("Reaction Parameters before optimization: ")
         print(self.rn.get_params())
         n_batches = len(conc_files_range)
@@ -658,7 +671,15 @@ class Optimizer:
                 # preform simulation
                 self.optimizer.zero_grad()
 
-                total_yield,conc_tensor,total_flux = sim.simulate_wrt_expdata(optim,node_str,conc_scale=conc_scale,mod_factor=mod_factor,conc_thresh=conc_thresh,mod_bool=mod_bool,verbose=verbose,yield_species=yield_species)
+                total_yield,conc_tensor,total_flux = \
+                    sim.simulate_wrt_expdata(optim,
+                                             node_str,
+                                             conc_scale=conc_scale,
+                                             mod_factor=mod_factor,
+                                             conc_thresh=conc_thresh,
+                                             mod_bool=mod_bool,
+                                             verbose=verbose,
+                                             yield_species=yield_species)
 
                 self.yield_per_iter.append(total_yield.item())
                 # self.flux_per_iter.append(total_flux.item())
@@ -691,8 +712,9 @@ class Optimizer:
                             self.final_t99.append(total_flux[3])
 
                         if self.rn.assoc_is_param:
-                            k = torch.exp(self.rn.compute_log_constants(self.rn.kon, self.rn.rxn_score_vec,
-                                                                scalar_modifier=1.))
+                            k = torch.exp(self.rn.compute_log_constants(self.rn.kon, 
+                                                                        self.rn.rxn_score_vec,
+                                                                        scalar_modifier=1.))
                             curr_lr = self.optimizer.state_dict()['param_groups'][0]['lr']
                             physics_penalty = torch.sum(100 * F.relu(-1 * (k - curr_lr * 1000))).to(self.dev) #+ torch.sum(10 * F.relu(1 * (k - max_thresh))).to(self.dev)
 
@@ -706,7 +728,8 @@ class Optimizer:
                             print(type(conc_array))
 
                             #Experimental data
-                            mask1 = (rate_data['Timestep']>=time_thresh) & (rate_data['Timestep']<time_threshmax)
+                            mask1 = (rate_data['Timestep']>=time_thresh) & \
+                                (rate_data['Timestep']<time_threshmax)
                             exp_time = np.array(rate_data['Timestep'][mask1])
 
                             exp_conc = np.array(rate_data['Conc'][mask1])
