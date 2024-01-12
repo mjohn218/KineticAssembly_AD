@@ -48,21 +48,20 @@ class TrapMetric:
                 return(time[i])
         return(time[-1])
 
-
-    def calc_slope(self,time,conc,mode='delta'):
+    def calc_slope(self, time, conc, mode='delta'):
         #There are 3 modes to calc slopes
         #Mode 1 - "delta" : mode which is just ratio of finite differences
         #Mode 2 - "log" : Gradient calc using numpy gradient function, but time is in logspace
         #Mode 3: "regular" : Gradient calc with time in normal space
 
-        if mode=="delta":
+        if mode == "delta":
             slopes=[]
             for i in range(len(time)-1):
                 delta_c = conc[i+1]=conc[i]
                 delta_t = np.log(time[i+1]-time[i])
 
                 s = delta_c/delta_t
-                slope.append(s)
+                slopes.append(s)
 
             return(slopes)
         elif mode=='log':
@@ -72,9 +71,8 @@ class TrapMetric:
             grad = np.gradient(conc,time)
             return(grad)
 
+    # TODO: Should this be "interpol", short for "interpolation"?
     def do_interpool(self,time,conc_complx,conc_mon,inter_gap=3):
-
-
         #If the conc profile requires interpolation of some points, most likely the trapped region,
         #First finding start and end time points of the trapped region
 
