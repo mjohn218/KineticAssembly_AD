@@ -49,27 +49,32 @@ class TrapMetric:
         return(time[-1])
 
     def calc_slope(self, time, conc, mode='delta'):
+        """
+        :param list time: List of time steps
+        :param list conc: List of concentrations, indexed by time step
+        :param str mode: Mode for calculating the slope. Options are "delta" to
+         use a basic finite difference method with log of time step differences, 
+         "log" to use NumPy's gradient method with log of time step values, and 
+         "regular" to use NumPy's gradient method with unaltered time step values.
+        """
+
         #There are 3 modes to calc slopes
         #Mode 1 - "delta" : mode which is just ratio of finite differences
         #Mode 2 - "log" : Gradient calc using numpy gradient function, but time is in logspace
         #Mode 3: "regular" : Gradient calc with time in normal space
 
         if mode == "delta":
-            slopes=[]
-            for i in range(len(time)-1):
-                delta_c = conc[i+1]=conc[i]
-                delta_t = np.log(time[i+1]-time[i])
-
-                s = delta_c/delta_t
-                slopes.append(s)
-
-            return(slopes)
+            slopes = [(conc[i+1] - conc[i]) / np.log(time[i+1]-time[i])
+                      for i in range(len(time) - 1)]
+            return slopes
         elif mode=='log':
             l_grad = np.gradient(conc,np.log(time))
             return(l_grad)
         elif mode == "regular":
             grad = np.gradient(conc,time)
             return(grad)
+        else:
+            raise ValueError("Invalid mode for calculating slope.")
 
     # TODO: Should this be "interpol", short for "interpolation"?
     def do_interpool(self,time,conc_complx,conc_mon,inter_gap=3):
@@ -79,21 +84,21 @@ class TrapMetric:
         slopes_complx = self.calc_slope(time,conc_complx)
         slopes_mon = self.calc_slope(time,conc_mon)
 
-        #Find time point when slope of monmomer becomes zero.
-        #In trapped system this is also when conc of monomer is close to zero
-        #To get the zero point, first normalizing the slopes and taking only absolute values
-        #Here it can get tricky to define what is zero. Have to choose a proper threshold.
-        norm_slopes_mon = slopes_mon/abs(np.min(slopes_mon))
+        # Find the time step when slope of monomer becomes zero.
+        # In a trapped system this, is also when conc. of monomer is close to zero.
+        # To get the zero point, first normalizing the slopes and taking only absolute values
+        # Here it can get tricky to define what is sufficiently close to zero. We h
+        # have to choose a proper threshold.
+        norm_slopes_mon = slopes_mon / abs(np.min(slopes_mon))
         abs_slopes_mon = np.absolute(norm_slopes_mon)
         mask = abs_slopes_mon < 1e-6
         inter_time_start = time[:-1][mask][0]
         indx_start = np.argwhere(mask)[0][0]
 
-        #To find the end point, we have to check when the slope of dimer or trimer increases.
-        #But it is not robust. Something to do for later.
-        #Currently just using user defined parameter than can be adjusted by looking at the conc. profile.
+        # To find the end point, we have to check when the slope of dimer or trimer increases.
+        # But it is not robust. Something to do for later.
+        # Currently just using user defined parameter than can be adjusted by looking at the conc. profile.
         indx_end = indx_start + inter_gap
-
 
         #Defining the interpolation time range
         time_inter = np.logspace(np.log10(time[indx_start]),np.log10(time[indx_end]),num=2,endpoint=True)
