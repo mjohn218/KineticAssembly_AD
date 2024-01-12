@@ -18,34 +18,50 @@ from scipy.interpolate import UnivariateSpline
 
 
 class TrapMetric:
-
-    def __init__(self,sim: VecSim ):
-
+    def __init__(self, sim: VecSim):
+        """
+        param VecSim sim: Simulation object
+        """
         self.sim_class = sim
 
-    def calc_timeEQ(self,eq_conc,time,conc,ini_conc,thresh=0.1):
-        eq_yield = eq_conc*100/ini_conc
+    def calc_timeEQ(self, 
+                    eq_conc: float, 
+                    time: int, 
+                    conc: list, 
+                    ini_conc: float, 
+                    thresh: float = 0.1):
+        """
+        Check whether an equilibrium concentration has been reached
+
+        :param float eq_conc: Equilibrium concentration
+        :param int time: List of time steps over which to check
+        :param list conc: List of concentrations, indexed by time step
+        :param float ini_conc: Initial concentration
+        :param float thresh: Threshold for calling the "flatness" of equilibrium
+        :return: Time step at which equilibrium is reached, or -1 if not yet reached
+        :rtype: int
+        """
+        eq_yield = eq_conc * 100 / ini_conc
         for i in range(len(time)):
-            curr_yield = conc[i]*100/ini_conc
+            curr_yield = conc[i] * 100 / ini_conc
             if abs(curr_yield-eq_yield) <= thresh:
                 return(time[i])
         return(time[-1])
 
-
-    def calc_slope(self,time,conc,mode='delta'):
+    def calc_slope(self, time, conc, mode='delta'):
         #There are 3 modes to calc slopes
         #Mode 1 - "delta" : mode which is just ratio of finite differences
         #Mode 2 - "log" : Gradient calc using numpy gradient function, but time is in logspace
         #Mode 3: "regular" : Gradient calc with time in normal space
 
-        if mode=="delta":
+        if mode == "delta":
             slopes=[]
             for i in range(len(time)-1):
                 delta_c = conc[i+1]=conc[i]
                 delta_t = np.log(time[i+1]-time[i])
 
                 s = delta_c/delta_t
-                slope.append(s)
+                slopes.append(s)
 
             return(slopes)
         elif mode=='log':
@@ -55,9 +71,8 @@ class TrapMetric:
             grad = np.gradient(conc,time)
             return(grad)
 
+    # TODO: Should this be "interpol", short for "interpolation"?
     def do_interpool(self,time,conc_complx,conc_mon,inter_gap=3):
-
-
         #If the conc profile requires interpolation of some points, most likely the trapped region,
         #First finding start and end time points of the trapped region
 
