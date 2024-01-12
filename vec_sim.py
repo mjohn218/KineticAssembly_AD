@@ -30,27 +30,34 @@ class VecSim:
         - The simulation must be fully differentiable.
     """
 
-    def __init__(self, net: VectorizedRxnNet,
+    def __init__(self, 
+                 net: VectorizedRxnNet,
                  runtime: float,
-                 device='cuda:0',calc_flux=False,rate_step=False):
+                 device='cuda:0',
+                 calc_flux: bool = False,
+                 rate_step: bool = False):
+        """
+        param VectorizedRxnNet net: The reaction network to run the simulation on
+        param float runtime: Length (in seconds) of the simulation.
+        param device: The device to run the simulation on
+        param bool calc_flux: # TODO: What does this do?
+        param bool rate_step: # TODO: What does this do?
         """
 
-        Args:
-            net: The reaction network to run the simulation on.
-            runtime: Length (in seconds) of the simulation.
-
-        """
+        # Choose device on which to simulate
         if torch.cuda.is_available() and "cpu" not in device:
             self.dev = torch.device(device)
             print("Using " + device)
         else:
             self.dev = torch.device("cpu")
-            # print("Using CPU")
+            print("Using CPU")
 
+        # Ensure that rn is a VectorizedRxnNet, not just a ReactionNetwork object
         if type(net) is ReactionNetwork:
             self.rn = VectorizedRxnNet(net, dev=self.dev)
         else:
             self.rn = net
+
         self.use_energies = self.rn.is_energy_set
         self.runtime = runtime
         self.observables = self.rn.observables
@@ -71,14 +78,30 @@ class VecSim:
         self.titrationBool=False
         self.gradients =[]
 
-
+        # If the 
+        self.coupled_kon = None
         if self.rn.rxn_coupling or self.rn.coupling:
-            self.coupled_kon = torch.zeros(len(self.rn.kon), requires_grad=True).double()
+            self.coupled_kon = torch.zeros(len(self.rn.kon), 
+                                           requires_grad=True).double()
 
 
-    def simulate(self, optim='yield',node_str=None,verbose=False,switch=False,switch_time=0,switch_rates=None,corr_rxns=[[0],[1]],conc_scale=1.0,mod_factor=1.0,conc_thresh=1e-5,mod_bool=True,yield_species=-1,store_interval=-1,change_cscale_tit=False):
+    def simulate(self, 
+                 optim='yield',
+                 node_str=None,
+                 verbose=False,
+                 switch=False,
+                 switch_time=0,
+                 switch_rates=None,
+                 corr_rxns=[[0],[1]],
+                 conc_scale=1.0,
+                 mod_factor=1.0,
+                 conc_thresh=1e-5,
+                 mod_bool=True,
+                 yield_species=-1,
+                 store_interval=-1,
+                 change_cscale_tit=False):
         """
-        modifies reaction network
+        Updates the reaction network by simulating reactions over time
         :return:
         """
         cur_time = 0
