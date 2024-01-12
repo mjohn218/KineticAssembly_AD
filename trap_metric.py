@@ -58,11 +58,6 @@ class TrapMetric:
          "regular" to use NumPy's gradient method with unaltered time step values.
         """
 
-        #There are 3 modes to calc slopes
-        #Mode 1 - "delta" : mode which is just ratio of finite differences
-        #Mode 2 - "log" : Gradient calc using numpy gradient function, but time is in logspace
-        #Mode 3: "regular" : Gradient calc with time in normal space
-
         if mode == "delta":
             slopes = [(conc[i+1] - conc[i]) / np.log(time[i+1]-time[i])
                       for i in range(len(time) - 1)]
@@ -76,7 +71,8 @@ class TrapMetric:
         else:
             raise ValueError("Invalid mode for calculating slope.")
 
-    def do_interpol(self,time,conc_complx,conc_mon,inter_gap=3):
+    # TODO: Fix this and document it. What is its purpose?
+    def do_interpol(self, time, conc_complx, conc_mon, inter_gap=3):
         #If the conc profile requires interpolation of some points, most likely the trapped region,
         #First finding start and end time points of the trapped region
 
@@ -142,6 +138,7 @@ class TrapMetric:
 
         return(first_peak,split_time,second_peak)
 
+    # TODO: Document this. What is it cleaning out?
     def clean_data(self,time,l_grad,thresh_freq=1,bin_num=50,mode='hist'):
 
         if mode == 'conc_step':
@@ -167,7 +164,7 @@ class TrapMetric:
             l_grad_new = l_grad[mask_bool]
 
             return(new_time_arr,l_grad_new)
-        elif mode =='hist':
+        elif mode == 'hist':
             data=np.histogram(l_grad,bins=bin_num)
             # print(data)
             flag=False
@@ -175,7 +172,7 @@ class TrapMetric:
             bin_val_min=0
             bin_val_max=0
             for i in range(len(data[0])):
-                if data[0][i] >=10 and not flag:
+                if data[0][i] >= 10 and not flag:
                     flag=True
                     count+=1
                     bin_val_min = data[1][i]
@@ -189,6 +186,8 @@ class TrapMetric:
             l_grad_new = l_grad[mask_out]
 
             return(new_time,l_grad_new)
+        else:
+            raise ValueError("Invalid mode for cleaning data.")
 
 
     def calc_lag(self,time,conc_complx,eq_conc):
