@@ -19,13 +19,31 @@ from scipy.interpolate import UnivariateSpline
 
 class TrapMetric:
     def __init__(self, sim: VecSim):
-        
+        """
+        param VecSim sim: Simulation object
+        """
         self.sim_class = sim
 
-    def calc_timeEQ(self,eq_conc,time,conc,ini_conc,thresh=0.1):
-        eq_yield = eq_conc*100/ini_conc
+    def calc_timeEQ(self, 
+                    eq_conc: float, 
+                    time: int, 
+                    conc: list, 
+                    ini_conc: float, 
+                    thresh: float = 0.1):
+        """
+        Check whether an equilibrium concentration has been reached
+
+        :param float eq_conc: Equilibrium concentration
+        :param int time: List of time steps over which to check
+        :param list conc: List of concentrations, indexed by time step
+        :param float ini_conc: Initial concentration
+        :param float thresh: Threshold for calling the "flatness" of equilibrium
+        :return: Time step at which equilibrium is reached, or -1 if not yet reached
+        :rtype: int
+        """
+        eq_yield = eq_conc * 100 / ini_conc
         for i in range(len(time)):
-            curr_yield = conc[i]*100/ini_conc
+            curr_yield = conc[i] * 100 / ini_conc
             if abs(curr_yield-eq_yield) <= thresh:
                 return(time[i])
         return(time[-1])
