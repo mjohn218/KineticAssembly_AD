@@ -76,8 +76,7 @@ class TrapMetric:
         else:
             raise ValueError("Invalid mode for calculating slope.")
 
-    # TODO: Should this be "interpol", short for "interpolation"?
-    def do_interpool(self,time,conc_complx,conc_mon,inter_gap=3):
+    def do_interpol(self,time,conc_complx,conc_mon,inter_gap=3):
         #If the conc profile requires interpolation of some points, most likely the trapped region,
         #First finding start and end time points of the trapped region
 
