@@ -635,6 +635,7 @@ class Optimizer:
                              yield_species=-1,
                              conc_files_pref=None,
                              conc_files_range=[],
+                             change_lr_yield=0.98,
                              time_threshmax=1):
         print("Reaction Parameters before optimization: ")
         print(self.rn.get_params())
@@ -655,7 +656,7 @@ class Optimizer:
             self.batch_mse_error = []
 
             update_copies_vec = self.rn.initial_copies
-            update_copies_vec[0:self.rn.num_monomers] = Tensor([init_conc])
+            update_copies_vec[0:self.rn.num_monomers] = torch.Tensor([init_conc])
 
             counter = 0
 
@@ -724,11 +725,10 @@ class Optimizer:
                             time_array = np.array(sim.steps)
                             conc_array = conc_tensor
 
-
                             print(type(conc_array))
 
                             #Experimental data
-                            mask1 = (rate_data['Timestep']>=time_thresh) & \
+                            mask1 = (rate_data['Timestep']>=time_thresh) and \
                                 (rate_data['Timestep']<time_threshmax)
                             exp_time = np.array(rate_data['Timestep'][mask1])
 
@@ -759,7 +759,8 @@ class Optimizer:
                             print('MSE on sim iteration ' + str(i) + ' was ' + str(mse_mean))
                             print("Grad: ",self.rn.kon.grad)
 
-                        if (self.lr_change_step is not None) and (total_yield>=change_lr_yield):
+                        if (self.lr_change_step is not None) and \
+                            (total_yield >= change_lr_yield):
                             change_lr = True
                             print("Curr learning rate : ")
                             for param_groups in self.optimizer.param_groups:
