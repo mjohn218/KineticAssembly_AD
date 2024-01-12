@@ -187,7 +187,12 @@ class VecSim:
 
         while cur_time < self.runtime:
             conc_counter=1
-            l_conc_prod_vec = self.rn.get_log_copy_prod_vector()
+            if n_steps > 100:
+                with torch.no_grad():
+                    l_conc_prod_vec = self.rn.get_log_copy_prod_vector()
+            else:
+                l_conc_prod_vec = self.rn.get_log_copy_prod_vector()
+    
             # if self.rn.boolCreation_rxn:
                 # l_conc_prod_vec[-1]=torch.log(torch.pow(Tensor([0]),Tensor([1])))
             # print("Prod Conc: ",l_conc_prod_vec)
