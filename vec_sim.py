@@ -76,9 +76,9 @@ class VecSim:
         self.titration_end_conc=self.rn.titration_end_conc
         self.tit_stop_count=0
         self.titrationBool=False
-        self.gradients =[]
+        self.gradients = []
 
-        # If the 
+        # Consider coupled rate constants, if specified
         self.coupled_kon = None
         if self.rn.rxn_coupling or self.rn.coupling:
             self.coupled_kon = torch.zeros(len(self.rn.kon), 
@@ -114,24 +114,18 @@ class VecSim:
         values = psutil.virtual_memory()
         if verbose:
             print("Start of simulation: memory Used: ",values.percent)
-        if optim=='time':
-            print("Time based Optimization")
+        if optim == 'time':
+            print("Time-based optimization")
 
-        # update observables
+        # Update observables
         max_poss_yield = torch.min(self.rn.copies_vec[:self.rn.num_monomers].clone()).to(self.dev)
 
         if self.rn.max_subunits !=-1:
             max_poss_yield = max_poss_yield/self.rn.max_subunits
             if verbose:
-                print("Max Poss Yield: ",max_poss_yield)
-        t95_flag=True
-        t85_flag=True
-        t50_flag=True
-        t99_flag=True
-        t85=-1
-        t95=-1
-        t50=-1
-        t99=-1
+                print("Max Poss Yield:", max_poss_yield)
+        t95_flag = t85_flag = t50_flag = t99_flag = True
+        t85 = t95 = t50 = t99 = -1
         if self.rn.boolCreation_rxn:
 
             creation_amount={node:0 for node in self.rn.creation_rxn_data.keys()}
@@ -247,16 +241,9 @@ class VecSim:
 
             delta_copies = torch.matmul(self.rn.M, rate_step)*conc_scale
 
-
-
-
-            #Calculate rxn_flux
+            #Calculate reaction flux, if specified
             if self.calc_flux:
                 rxn_flux = self.rn.get_reaction_flux()
-
-
-
-
 
             if (torch.min(self.rn.copies_vec + delta_copies) < 0):
                 # temp_copies = self.rn.copies_vec + delta_copies
@@ -393,13 +380,9 @@ class VecSim:
                                                                                           dtype=torch.double,
                                                                                           device=self.dev))
 
-
-
-
             # print("Final copies: ", self.rn.copies_vec)
             # values = psutil.virtual_memory()
             # print("Memory Used: ",values.percent)
-
 
             step = torch.exp(l_step)
             if self.rate_step:
@@ -468,9 +451,9 @@ class VecSim:
             #     print(l_k)
             #     switch=False
 
-            cur_time = cur_time + step*conc_scale
+            cur_time = cur_time + step * conc_scale
             self.cur_time = cur_time
-            n_steps+=1
+            n_steps += 1
 
             #Only for testing puprose in CHaperone
             # for c in range(len(self.rn.chap_params)):
@@ -531,12 +514,12 @@ class VecSim:
             if len(self.steps) > cutoff:
                 print("WARNING: sim was stopped early due to exceeding set max steps", sys.stderr)
                 break
-            if n_steps%10000==0:
+            if n_steps % 10000 == 0:
                 if verbose:
                     values = psutil.virtual_memory()
-                    print("Memory Used: ",values.percent)
-                    print("RAM Usage (GB): ",values.used/(1024*1024*1024))
-                    print("Current Time: ",cur_time)
+                    print("Memory Used:", values.percent)
+                    print("RAM Usage (GB):", values.used / (1024 ** 3))
+                    print("Current Time:", cur_time)
         if self.rn.chaperone:
             total_complete = self.rn.copies_vec[yield_species]/max_poss_yield
             # dimer_yield = self.rn.copies_vec[yield_species]/max_poss_yield
@@ -557,7 +540,6 @@ class VecSim:
                 chap_species_sum+= self.rn.copies_vec[self.rn.optimize_species['enz-subs'][s_iter]]/max_poss_yield
                 chap_indx = np.argmax(self.rn.observables[self.rn.optimize_species['enz-subs'][s_iter]][1])
                 chap_max_yields_arr.append(self.rn.observables[self.rn.optimize_species['enz-subs'][s_iter]][1][chap_indx]/max_poss_yield)
-
 
             #Old code when there was only one chap reaction
             # dimer_yield = self.rn.copies_vec[self.rn.optimize_species['substrate']]/max_poss_yield
@@ -592,7 +574,6 @@ class VecSim:
             final_yield = self.calc_corr_coeff(corr_rxns)
             # print(final_yield)
             return(Tensor([final_yield]).to(self.dev),None)
-
 
         if optim == 'flux':
             if node_str != None:

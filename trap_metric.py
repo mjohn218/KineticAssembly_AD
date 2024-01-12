@@ -18,9 +18,8 @@ from scipy.interpolate import UnivariateSpline
 
 
 class TrapMetric:
-
-    def __init__(self,sim: VecSim ):
-
+    def __init__(self, sim: VecSim):
+        
         self.sim_class = sim
 
     def calc_timeEQ(self,eq_conc,time,conc,ini_conc,thresh=0.1):
