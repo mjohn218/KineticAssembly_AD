@@ -30,7 +30,7 @@ class Optimizer:
         else:
             self.dev = torch.device("cpu")
             device = 'cpu'
-            print("Using CPU")
+            # print("Using CPU")
         self._dev_name = device
 
         self.sim_class = VecSim
@@ -199,6 +199,8 @@ class Optimizer:
             plt.plot(steps,flux,label='Flux')
         #plt.ylim((0, 1))
         plt.title = 'Yield at each iteration'
+        plt.xlabel("Yield (%)")
+        plt.ylabel("Iterations")
         plt.show()
 
     def optimize(self,optim='yield',
@@ -314,7 +316,7 @@ class Optimizer:
 
             if optim in ['yield', 'time']:
                 if optim == 'yield':
-                    print(f'Yield on sim. iteration {i} was f{str(total_yield.item() * 100)[:4]}%.')
+                    print(f'Yield on sim. iteration {i} was {str(total_yield.item() * 100)[:4]}%.')
                 elif optim == 'time':
                     print(f'Yield on sim iteration {i} was {str(total_yield.item() * 100)[:4]}%' + \
                           '\tTime :', str(cur_time))
@@ -483,7 +485,7 @@ class Optimizer:
                             # dimer_penalty = 10*F.relu(1*(k[16] - self.lr*20))+10*F.relu(1*(k[17] - self.lr*20))+10*F.relu(1*(k[18] - self.lr*20))
                             cost = -total_yield + physics_penalty + var_penalty #+ dimer_penalty#+ var_penalty #+ ratio_penalty
                             cost.backward()
-                            print("Grad: ",self.rn.kon.grad)
+                            # print("Grad: ",self.rn.kon.grad)
                     elif self.rn.copies_is_param:
                         c = self.rn.c_params.clone().detach()
                         physics_penalty = torch.sum(10 * F.relu(-1 * (c))).to(self.dev)# stops zeroing or negating params
@@ -620,142 +622,151 @@ class Optimizer:
             del sim
 
 
-    def optimize_wrt_expdata(self,optim='yield',node_str=None,max_yield=0.5,max_thresh=10,lowvar=False,conc_scale=1.0,mod_factor=1.0,conc_thresh=1e-5,mod_bool=True,verbose=False,yield_species=-1,trueval=None,time_threshmax=1):
+    def optimize_wrt_expdata(self,optim='yield',node_str=None,max_yield=0.5,max_thresh=10,conc_scale=1.0,mod_factor=1.0,conc_thresh=1e-5,mod_bool=True,verbose=False,yield_species=-1,conc_files_pref=None,conc_files_range=[],time_threshmax=1):
         print("Reaction Parameters before optimization: ")
         print(self.rn.get_params())
+        n_batches = len(conc_files_range)
+        print("Total number of batches: ",n_batches)
 
-        rate_data = pd.read_csv(trueval,delimiter='\t',comment='#',names=['Timestep','Conc'])
+        print("Optimizer State:",self.optimizer.state_dict)
 
         self.mse_error = []
 
+        for b in range(n_batches):
+            init_conc = float(conc_files_range[b])
+            print("----------------- Starting new batch of optimization ------------------------------")
+            print("------------------ Conentration : %f " %(init_conc))
+            new_file = conc_files_pref+str(init_conc)
+            rate_data = pd.read_csv(new_file,delimiter='\t',comment='#',names=['Timestep','Conc'])
+
+            self.batch_mse_error = []
+
+            update_copies_vec = self.rn.initial_copies
+            update_copies_vec[0:self.rn.num_monomers] = Tensor([init_conc])
+
+            counter = 0
+
+            for i in range(self.optim_iterations):
+                # reset for new simulator
+                self.rn.reset()
+
+                sim = self.sim_class(self.rn,
+                                         self.sim_runtime,
+                                         device=self._dev_name)
 
 
-        print("Optimizer State:",self.optimizer.state_dict)
-        counter = 0
-        calc_flux_optim=False
-        if optim=='flux_coeff':
-            calc_flux_optim=True
-        for i in range(self.optim_iterations):
-            # reset for new simulator
-            self.rn.reset()
+                # preform simulation
+                self.optimizer.zero_grad()
 
-            sim = self.sim_class(self.rn,
-                                     self.sim_runtime,
-                                     device=self._dev_name,calc_flux=calc_flux_optim)
+                total_yield,conc_tensor,total_flux = sim.simulate_wrt_expdata(optim,node_str,conc_scale=conc_scale,mod_factor=mod_factor,conc_thresh=conc_thresh,mod_bool=mod_bool,verbose=verbose,yield_species=yield_species)
 
-
-            # preform simulation
-            self.optimizer.zero_grad()
-
-            total_yield,conc_tensor,total_flux = sim.simulate_wrt_expdata(optim,node_str,conc_scale=conc_scale,mod_factor=mod_factor,conc_thresh=conc_thresh,mod_bool=mod_bool,verbose=verbose,yield_species=yield_species)
-
-            self.yield_per_iter.append(total_yield.item())
-            # self.flux_per_iter.append(total_flux.item())
-            # update tracked data
-            self.sim_observables.append(self.rn.observables.copy())
-            self.sim_observables[-1]['steps'] = np.array(sim.steps)
-            self.parameter_history.append(self.rn.kon.clone().detach().to(torch.device('cpu')).numpy())
+                self.yield_per_iter.append(total_yield.item())
+                # self.flux_per_iter.append(total_flux.item())
+                # update tracked data
+                self.sim_observables.append(self.rn.observables.copy())
+                self.sim_observables[-1]['steps'] = np.array(sim.steps)
+                self.parameter_history.append(self.rn.kon.clone().detach().to(torch.device('cpu')).numpy())
 
 
-            if optim =='yield' or optim=='time':
-                if optim=='yield':
-                    print('yield on sim iteration ' + str(i) + ' was ' + str(total_yield.item() * 100)[:4] + '%')
-                # elif optim=='time':
-                #     print('yield on sim iteration ' + str(i) + ' was ' + str(total_yield.item() * 100)[:4] + '%' + '\tTime : ',str(cur_time))
-                # print(self.rn.copies_vec)
-                # preform gradient step
-                if i != self.optim_iterations - 1:
+                if optim =='yield' or optim=='time':
+                    if optim=='yield':
+                        print('yield on sim iteration ' + str(i) + ' was ' + str(total_yield.item() * 100)[:4] + '%')
+                    # elif optim=='time':
+                    #     print('yield on sim iteration ' + str(i) + ' was ' + str(total_yield.item() * 100)[:4] + '%' + '\tTime : ',str(cur_time))
+                    # print(self.rn.copies_vec)
+                    # preform gradient step
+                    if i != self.optim_iterations - 1:
 
-                    new_params = self.rn.kon.clone().detach()
-                    print('current params: ' + str(new_params))
+                        new_params = self.rn.kon.clone().detach()
+                        print('current params: ' + str(new_params))
 
-                    #Store yield and params data
-                    if total_yield-max_yield > 0:
+                        #Store yield and params data
+                        if total_yield-max_yield > 0:
 
-                        self.final_yields.append(total_yield)
-                        self.final_solns.append(new_params)
-                        self.final_t50.append(total_flux[0])
-                        self.final_t85.append(total_flux[1])
-                        self.final_t95.append(total_flux[2])
-                        self.final_t99.append(total_flux[3])
+                            self.final_yields.append(total_yield)
+                            self.final_solns.append(new_params)
+                            self.final_t50.append(total_flux[0])
+                            self.final_t85.append(total_flux[1])
+                            self.final_t95.append(total_flux[2])
+                            self.final_t99.append(total_flux[3])
 
-                    if self.rn.assoc_is_param:
-                        k = torch.exp(self.rn.compute_log_constants(self.rn.kon, self.rn.rxn_score_vec,
-                                                            scalar_modifier=1.))
-                        curr_lr = self.optimizer.state_dict()['param_groups'][0]['lr']
-                        physics_penalty = torch.sum(100 * F.relu(-1 * (k - curr_lr * 1000))).to(self.dev) #+ torch.sum(10 * F.relu(1 * (k - max_thresh))).to(self.dev)
-
-
-                        sel_parm_indx = []
-                        time_thresh=1e-4
-                        time_array = np.array(sim.steps)
-                        conc_array = conc_tensor
+                        if self.rn.assoc_is_param:
+                            k = torch.exp(self.rn.compute_log_constants(self.rn.kon, self.rn.rxn_score_vec,
+                                                                scalar_modifier=1.))
+                            curr_lr = self.optimizer.state_dict()['param_groups'][0]['lr']
+                            physics_penalty = torch.sum(100 * F.relu(-1 * (k - curr_lr * 1000))).to(self.dev) #+ torch.sum(10 * F.relu(1 * (k - max_thresh))).to(self.dev)
 
 
-                        print(type(conc_array))
-
-                        #Experimental data
-                        mask1 = (rate_data['Timestep']>=time_thresh) & (rate_data['Timestep']<time_threshmax)
-                        exp_time = np.array(rate_data['Timestep'][mask1])
-
-                        exp_conc = np.array(rate_data['Conc'][mask1])
-
-                        # mse_tensor = torch.zeros(len(exp_time))
-                        # mse_tensor.requires_grad=True
-                        mse=torch.Tensor([0.])
-                        mse.requires_grad=True
-                        total_time_diff = 0
-                        for e_indx in range(len(exp_time)):
-                            curr_time = exp_time[e_indx]
-                            time_diff = (np.abs(time_array-curr_time))
-                            get_indx = time_diff.argmin()
-                            total_time_diff+=time_diff[get_indx]
-                            mse = mse+ (exp_conc[e_indx] - conc_array[get_indx])**2
-                            # mse_tensor[e_indx] = (exp_conc[e_indx] - conc_array[get_indx])**2
+                            sel_parm_indx = []
+                            time_thresh=1e-4
+                            time_array = np.array(sim.steps)
+                            conc_array = conc_tensor
 
 
-                        # print(type(mse_tensor))
-                        # mse = mse/len(exp_time)
-                        mse_mean = torch.mean(mse)
-                        self.mse_error.append(mse_mean.item())
-                        print("Total time diff: ",total_time_diff)
-                        # print(mse)
-                        cost = mse_mean + physics_penalty
-                        cost.backward()
-                        print('MSE on sim iteration ' + str(i) + ' was ' + str(mse_mean))
-                        print("Grad: ",self.rn.kon.grad)
+                            print(type(conc_array))
 
-                    if (self.lr_change_step is not None) and (total_yield>=change_lr_yield):
-                        change_lr = True
-                        print("Curr learning rate : ")
-                        for param_groups in self.optimizer.param_groups:
-                            print(param_groups['lr'])
-                            if param_groups['lr'] < 1e-2:
-                                change_lr=False
-                        if change_lr:
-                            self.scheduler.step()
+                            #Experimental data
+                            mask1 = (rate_data['Timestep']>=time_thresh) & (rate_data['Timestep']<time_threshmax)
+                            exp_time = np.array(rate_data['Timestep'][mask1])
 
+                            exp_conc = np.array(rate_data['Conc'][mask1])
 
-                    #Changing learning rate
-                    if (self.lr_change_step is not None) and (i%self.lr_change_step ==0) and (i>0):
-                        print("New learning rate : ")
-                        for param_groups in self.optimizer.param_groups:
-                            print(param_groups['lr'])
-
-                    self.optimizer.step()
+                            # mse_tensor = torch.zeros(len(exp_time))
+                            # mse_tensor.requires_grad=True
+                            mse=torch.Tensor([0.])
+                            mse.requires_grad=True
+                            total_time_diff = 0
+                            for e_indx in range(len(exp_time)):
+                                curr_time = exp_time[e_indx]
+                                time_diff = (np.abs(time_array-curr_time))
+                                get_indx = time_diff.argmin()
+                                total_time_diff+=time_diff[get_indx]
+                                mse = mse+ (exp_conc[e_indx] - conc_array[get_indx])**2
+                                # mse_tensor[e_indx] = (exp_conc[e_indx] - conc_array[get_indx])**2
 
 
-            values = psutil.virtual_memory()
-            mem = values.available / (1024.0 ** 3)
-            if mem < .5:
-                # kill program if it uses to much ram
-                print("Killing optimization because too much RAM being used.")
-                print(values.available,mem)
-                return self.rn
-            if i == self.optim_iterations - 1:
-                print("optimization complete")
-                print("Final params: " + str(new_params))
-                return self.rn
+                            # print(type(mse_tensor))
+                            # mse = mse/len(exp_time)
+                            mse_mean = torch.mean(mse)
+                            self.mse_error.append(mse_mean.item())
+                            print("Total time diff: ",total_time_diff)
+                            # print(mse)
+                            cost = mse_mean + physics_penalty
+                            cost.backward()
+                            print('MSE on sim iteration ' + str(i) + ' was ' + str(mse_mean))
+                            print("Grad: ",self.rn.kon.grad)
+
+                        if (self.lr_change_step is not None) and (total_yield>=change_lr_yield):
+                            change_lr = True
+                            print("Curr learning rate : ")
+                            for param_groups in self.optimizer.param_groups:
+                                print(param_groups['lr'])
+                                if param_groups['lr'] < 1e-2:
+                                    change_lr=False
+                            if change_lr:
+                                self.scheduler.step()
+
+
+                        #Changing learning rate
+                        if (self.lr_change_step is not None) and (i%self.lr_change_step ==0) and (i>0):
+                            print("New learning rate : ")
+                            for param_groups in self.optimizer.param_groups:
+                                print(param_groups['lr'])
+
+                        self.optimizer.step()
+
+
+                values = psutil.virtual_memory()
+                mem = values.available / (1024.0 ** 3)
+                if mem < .5:
+                    # kill program if it uses to much ram
+                    print("Killing optimization because too much RAM being used.")
+                    print(values.available,mem)
+                    return self.rn
+                if i == self.optim_iterations - 1:
+                    print("optimization complete")
+                    print("Final params: " + str(new_params))
+                    return self.rn
 
             del sim
 

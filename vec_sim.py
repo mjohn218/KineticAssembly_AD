@@ -45,7 +45,7 @@ class VecSim:
             print("Using " + device)
         else:
             self.dev = torch.device("cpu")
-            print("Using CPU")
+            # print("Using CPU")
 
         if type(net) is ReactionNetwork:
             self.rn = VectorizedRxnNet(net, dev=self.dev)
@@ -89,7 +89,8 @@ class VecSim:
         n_steps=0
 
         values = psutil.virtual_memory()
-        print("Start of simulation: memory Used: ",values.percent)
+        if verbose:
+            print("Start of simulation: memory Used: ",values.percent)
         if optim=='time':
             print("Time based Optimization")
 
@@ -406,7 +407,7 @@ class VecSim:
                 if self.rn.copies_vec[yield_species]/max_poss_yield > 0.99 and t99_flag:
                     t99=cur_time
                     t99_flag=False
-                print("Next time: ",cur_time + step*conc_scale)
+                # print("Next time: ",cur_time + step*conc_scale)
                 # print("Curr_time:",cur_time)
                 if verbose:
                     # print("Mass Conservation T: ",self.rn.copies_vec[4]+self.rn.copies_vec[16])

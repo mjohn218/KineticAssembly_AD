@@ -98,7 +98,7 @@ class ReactionNetwork:
         self.default_k_destruction = 1e-1
         self.max_subunits = -1
         self.max_interactions = 2
-        self.monomer_add_only = True
+        self.monomer_add_only = False
         self.chaperone=False
         self.homo_rates=False
         # default observables are monomers and final complex
@@ -214,7 +214,6 @@ class ReactionNetwork:
         #New split
         #First splitting it by the reaction arrow. The second splitting the reactants side text to get species. Useful to identify creation ann destruction rxns.
         split_01 = re.split('<->',items[0])
-        print("SPLIT_01: ",split_01)
 
         #Check if any of the reactants is in bound form
         if '!' in split_01[0]:
@@ -232,7 +231,6 @@ class ReactionNetwork:
             else:
                 #No bound reactnats, No creation or destruction. Parse reactants normally
                 r_info = re.split('\\(.\\)+.|\\(.\\)',split_01[0])
-                print(r_info)
                 react_1 = r_info[0]
                 react_2 = r_info[1]
 
@@ -244,7 +242,6 @@ class ReactionNetwork:
             self.k_on = 1
         k_off = None
         if 'G=' in items[-1]:
-            print("GGGGGGGGGgg")
             score = Tensor([float(items[-1].split('=')[1])])
         else:
             if seed:
@@ -380,12 +377,12 @@ class ReactionNetwork:
         node_exists = [x for x in self.network.nodes(data=True) if
                        _equal(x[1]['struct'], connected_item)]
         # print("Checking node exists for : ", connected_item.nodes())
-        print(node_exists)
-        print("Connected item Edges: ",connected_item.edges())
+        # print(node_exists)
+        # print("Connected item Edges: ",connected_item.edges())
         new_edges_added = 0
         if len(node_exists) == 0:
-            print("New node added--1")
-            print(connected_item.nodes())
+            print("New node added - Node index: %d ; Node label: %s " %(self._node_count,gtostr(connected_item)))
+            # print(connected_item.nodes())
             self.network.add_node(self._node_count, struct=connected_item, copies=Tensor([0.]),subunits=subunits)
             self._initial_copies[self._node_count] = Tensor([0.])
             new_node = self._node_count
@@ -397,14 +394,12 @@ class ReactionNetwork:
             new_node = node_exists[0][0]
         if self.network.has_edge(source_1, new_node):
             # skip if edge exists failsafe.
-            print("$$$$$$$")
             return None
         if not template:
-            print("&&&&&&&")
             return None
         else:
 
-            print("Adding an new edge--",source_1,new_node)
+            # print("Adding an new edge--",source_1,new_node)
             # print("uid: ", self._rxn_count)
 
             #Creates a rxn_class, dG_map and monomer rxn map.
@@ -433,7 +428,7 @@ class ReactionNetwork:
                                   uid=self._rxn_count)
             new_edges_added+=1
             if source_2 is not None:
-                print("Adding an new edge--",source_2,new_node)
+                # print("Adding an new edge--",source_2,new_node)
                 # print("uid: ", self._rxn_count)
                 self.network.add_edge(source_2, new_node,
                                       k_on=self.default_k_on,
@@ -487,8 +482,8 @@ class ReactionNetwork:
 
         self._rxn_count += 1
         if len(node_exists) == 0:
-            print("New node added--2")
-            print(self.network.nodes())
+
+            # print(self.network.nodes())
             return (new_node, self.network.nodes[new_node])
         else:
             return None
@@ -508,9 +503,7 @@ class ReactionNetwork:
         if n2 is not None:
             nextn = n2[1]['struct']
             item = nx.compose(orig, nextn)
-            print("Orig edges: ",orig.edges())
-            print("Nextn edges: ",nextn.edges())
-            print("Item edges: ",item.edges())
+
         else:
             item = orig
         connected_item = item.copy()
@@ -518,17 +511,14 @@ class ReactionNetwork:
         add_to_graph = False
         complex_size = 0
         for poss_edge in list(self.allowed_edges.keys()):
-            print("Allowed edges: ")
-            print(poss_edge)
             # print(item.nodes())
-            print([item.has_node(n) for n in poss_edge])
-            print(item.has_edge(poss_edge[0], poss_edge[1]))
+            # print([item.has_node(n) for n in poss_edge])
+            # print(item.has_edge(poss_edge[0], poss_edge[1]))
             if False not in [item.has_node(n) for n in poss_edge] and \
                     (n2 is None or
                      (True in [orig.has_node(n) for n in poss_edge] and
                       True in [nextn.has_node(n) for n in poss_edge]))\
                     and not item.has_edge(poss_edge[0], poss_edge[1]):
-                print("############################3")
                 repeat_units=False
 
                 if self.monomer_add_only==True:
@@ -561,7 +551,7 @@ class ReactionNetwork:
                         #Can identify this by checking the edges and not nodes. Since "AA" node does not appear, but A-A eddge is allowed
                         for (u,v) in item.edges:
                             if u==v:
-                                print("Repeat Units")
+                                # print("Repeat Units")
                                 repeat_units = True
                         if repeat_units:
                             connected_item.add_edge(poss_edge[1], poss_edge[0])
@@ -570,7 +560,7 @@ class ReactionNetwork:
                         add_to_graph=True
                         # print("Connected Nodes: ",connected_item.nodes())
                         # print("Connected Edges: ",connected_item.edges())
-                elif self.monomer_add_only==-1:
+                elif self.monomer_add_only==False:
                     if self.chaperone and True in [item.has_node(sp) for sp in list(self.chap_int_spec_map.keys())]:
                         #If there are chaperone rxns, then there will a species present which has an intermediate which has the chaperone on it.
                         #Then this species cannot add more bonds to it. It should only dissociate.
@@ -588,7 +578,7 @@ class ReactionNetwork:
                     #Can identify this by checking the edges and not nodes. Since "AA" node does not appear, but A-A eddge is allowed
                     for (u,v) in item.edges:
                         if u==v:
-                            print("Repeat Units")
+                            # print("Repeat Units")
                             repeat_units = True
                     if repeat_units:
                         connected_item.add_edge(poss_edge[1], poss_edge[0])
@@ -614,7 +604,7 @@ class ReactionNetwork:
                         #Can identify this by checking the edges and not nodes. Since "AA" node does not appear, but A-A eddge is allowed
                         for (u,v) in item.edges:
                             if u==v:
-                                print("Repeat Units")
+                                # print("Repeat Units")
                                 repeat_units = True
                         if repeat_units:
                             connected_item.add_edge(poss_edge[1], poss_edge[0])
@@ -634,10 +624,10 @@ class ReactionNetwork:
                 #Basically we are creating the reaction AB + A -> AAB. But this is done by trying to form internal bonds of AB. This should actually be done when two nodes AB
                 #and A are evaluated in resolve_tree()
 
-                print("*********************************************")
-                print("Adding extra new bonds for the repeating unit - ")
-                print(n1[1]['struct'].edges())
-                print(add_to_graph)
+                # print("*********************************************")
+                # print("Adding extra new bonds for the repeating unit - ")
+                # print(n1[1]['struct'].edges())
+                # print(add_to_graph)
                 new_bonds.append(poss_edge)
                 complex_size+=n1[1]['subunits']   #Only for n1 since n2 is None
 
@@ -677,7 +667,7 @@ class ReactionNetwork:
                             #If its a linear polymer. Then only one new bond is formed. Chain elongation
                             #Since we don't know if n1 is monomer or n2, right now just looping over both subunits to add bonds.
                             if self.max_interactions ==2:
-                                print("NEW BOND ADDEDDDDDDD")
+                                # print("NEW BOND ADDEDDDDDDD")
                                 new_bonds.append(poss_edge)
                                 connected_item.add_edge(poss_edge[1], poss_edge[0])
                                 if total_subunits == self.max_subunits:
@@ -691,7 +681,7 @@ class ReactionNetwork:
                                 print("Forming bonds to achieve max interactions from each sub-unit")
                                 for i in range(n1[1]['subunits']):
                                     for j in range(n2[1]['subunits']):
-                                        print("NEW BOND ADDEDDDDDDD")
+                                        # print("NEW BOND ADDEDDDDDDD")
                                         new_bonds.append(poss_edge)
                                         connected_item.add_edge(poss_edge[1], poss_edge[0])
 
@@ -714,7 +704,7 @@ class ReactionNetwork:
 
                 else:
                     #Both nodes are not monomers
-                    print("BOTH NODES ARE NOT MONOMERS!!")
+                    # print("BOTH NODES ARE NOT MONOMERS!!")
                     if self.monomer_add_only == -1:
                         print("NON-MONOMER ADDITION!!!!!")
                         #Only add reaction if user defined as adding rxn b/w non-monomers
@@ -813,10 +803,10 @@ class ReactionNetwork:
         """
         node_set1 = set(n1[1]['struct'].nodes())
         node_set2 = set(n2[1]['struct'].nodes())
-        print("-----")
-        print(node_set1)
-        print(node_set2)
-        print(node_set1 - node_set2)
+        # print("-----")
+        # print(node_set1)
+        # print(node_set2)
+        # print(node_set1 - node_set2)
         return len(node_set1 - node_set2) < len(node_set1)
 
     def decompose_monomers(self,n1,monomer_set):
@@ -997,13 +987,12 @@ class ReactionNetwork:
         while len(new_nodes) > 0:
             node = new_nodes.pop(0)
             for anode in list(self.network.nodes(data=True)):
-                print("Node-1 : ",node)
-                print("Node-2 : ",anode)
+                # print("Node-1 : ",node)
+                # print("Node-2 : ",anode)
                 if not self.is_hindered(node, anode):
-                    print("False")
                     new_nodes += self.match_maker(node, anode, self.is_one_step)
                 else:
-                    print("Steric hindrance detected")
+                    # print("Steric hindrance detected")
                     #Now it means there is some steric hindrance (which is decided by the fact that a new subunit to be added is already present in the complex.
                     #This is where a complex with multiple repeating sub units have to be resolved or homo-oligomers.
                     #To control this addition, we have to deine the max repeating units in a complex. If not there is a chance this will keep on expanding the complex
@@ -1021,8 +1010,8 @@ class ReactionNetwork:
                         new_nodes+= self.match_maker(node,anode,self.is_one_step)
                     elif (node[1]['subunits']+anode[1]['subunits'] > self.max_subunits) and (self.max_subunits >0):
                         print("Max subunits limit reached")
-                        print(node[1]['struct'].edges())
-                        print(anode[1]['struct'].edges())
+                        # print(node[1]['struct'].edges())
+                        # print(anode[1]['struct'].edges())
 
 
             # must also try internal bonds
@@ -1058,6 +1047,8 @@ class ReactionNetwork:
 
         if self.chaperone:
             self.resolve_chaperone_rxn()
+
+        print("Reaction Network Completed")
 
 if __name__ == '__main__':
     bngls_path = sys.argv[1]  # path to bngl

@@ -23,20 +23,20 @@ class VectorizedRxnNet:
     units of reaction scores are treated as J * c / mol where c is a user defined scalar
     """
 
-    def __init__(self, 
-                 rn: ReactionNetwork, 
-                 assoc_is_param=True, 
-                 copies_is_param=False, 
+    def __init__(self,
+                 rn: ReactionNetwork,
+                 assoc_is_param=True,
+                 copies_is_param=False,
                  chap_is_param=False,
-                 dissoc_is_param=False, 
+                 dissoc_is_param=False,
                  dG_is_param=False,
                  cplx_dG=0,
                  mode=None,
                  type='a',
                  dev='cpu',
                  coupling=False,
-                 cid={-1:-1}, 
-                 rxn_coupling=False, 
+                 cid={-1:-1},
+                 rxn_coupling=False,
                  rx_cid={-1:-1},
                  std_c=1e6,
                  optim_rates=None,
@@ -507,9 +507,9 @@ class VectorizedRxnNet:
         copies_vec = torch.zeros([num_states]).double()
 
         for n in rn.network.nodes():
-            print(RN.gtostr(rn.network.nodes[n]['struct']))
+            # print(RN.gtostr(rn.network.nodes[n]['struct']))
             copies_vec[n] = rn.network.nodes[n]['copies']
-            print("Reactant Sets:")
+            # print("Reactant Sets:")
 
             #First check if there are any zeroth order reactions
             if self.boolCreation_rxn or self.boolDestruction_rxn:
@@ -553,7 +553,7 @@ class VectorizedRxnNet:
         # generate the reverse map explicitly
         # M[0,11]=0
         M[:, rn._rxn_count:] = -1 * M[:, :rn._rxn_count]
-        print("Before: ",M)
+        # print("Before: ",M)
         if self.chaperone:
             for chap,uids in self.chap_uid_map.items():
                 # M[chap,uid] = 0
@@ -571,6 +571,11 @@ class VectorizedRxnNet:
         # print(kon)
 
         # print(copies_vec)
+
+        print("Stoichiometric Matrix: ",M)
+        print("Reaction rates: ",kon)
+        print('dGs: ', rxn_score_vec)
+        print("Species Concentrations: ",copies_vec)
 
         return M, kon, rxn_score_vec, copies_vec
 
