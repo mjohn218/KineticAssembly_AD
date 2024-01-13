@@ -90,10 +90,11 @@ class TrapMetric:
         inter_time_start = time[:-1][mask][0]
         indx_start = np.argwhere(mask)[0][0]
 
-        # To find the end point, we have to check when the slope of dimer or trimer increases.
-        # But it is not robust. Something to do for later.
-        # Currently just using user defined parameter than can be adjusted by looking at the conc. profile.
+        #To find the end point, we have to check when the slope of dimer or trimer increases.
+        #But it is not robust. Something to do for later.
+        #Currently just using user defined parameter than can be adjusted by looking at the conc. profile.
         indx_end = indx_start + inter_gap
+
 
         #Defining the interpolation time range
         time_inter = np.logspace(np.log10(time[indx_start]),np.log10(time[indx_end]),num=2,endpoint=True)
@@ -105,8 +106,23 @@ class TrapMetric:
 
         return(new_time,new_conc_complx)
 
-    def get_time_bounds(self,time,eq_time,grad,l_grad,l_grad2,tan_thresh=89,n_traps=1):
-        peak_indx = np.argmax(l_grad)
+    def get_time_bounds(self,
+                        time,
+                        eq_time,
+                        l_grad,
+                        l_grad2,
+                        n_traps=1):
+        # Unused former argument: tan_thresh=89
+        """
+        :param list time: List of time steps
+        :param float eq_time: Time at which equilibrium is reached
+        :param list l_grad: Time derivates of conc. taken with time step values logged
+        :param list l_grad2: Second time derivatives of conc. taken with time step values logged
+        :param int n_traps: Number of traps to be detected
+        """
+
+
+
         mask_eq = time < eq_time
         eq_indx = np.argwhere(mask_eq)[-1][0]
         flag_min = False
