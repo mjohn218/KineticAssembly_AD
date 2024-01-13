@@ -102,16 +102,17 @@ class TrapMetric:
         complx_inter = UnivariateSpline(time[indx_start:indx_end],conc_complx[indx_start:indx_end],k=1,s=0.1)
 
         new_time = np.concatenate((time[:indx_start+1],time_inter[10:-10],time[indx_end:]))
+        # TODO: What should the undeclared conc and time_new variables be?
         new_conc_complx = np.concatenate((conc[:indx_start+1],complx_inter(time_new[10:-10]),conc_complx[indx_end:]))
 
         return(new_time,new_conc_complx)
 
     def get_time_bounds(self,
                         time,
-                        eq_time,
+                        eq_time : float,
                         l_grad,
                         l_grad2,
-                        n_traps=1):
+                        n_traps : int = 1) -> (float, float, float):
         # Unused former argument: tan_thresh=89
         """
         :param list time: List of time steps
@@ -121,24 +122,23 @@ class TrapMetric:
         :param int n_traps: Number of traps to be detected
         """
 
-
-
         mask_eq = time < eq_time
         eq_indx = np.argwhere(mask_eq)[-1][0]
         flag_min = False
         flag_max = True
-        count=0
+        count = 0
+
         for i in range(len(l_grad2)):
-            if flag_max and l_grad2[i]<0:
-                flag_min=True
-                flag_max=False
+            if flag_max and l_grad2[i] < 0:
+                flag_min = True
+                flag_max = False
                 first_peak=time[i]
-            if flag_min and l_grad2[i]>0:
+            if flag_min and l_grad2[i] > 0:
                 split_time = time[i]
-                split_indx=i
-                flag_min=False
-                flag_max=True
-                count+=1
+                split_indx = i
+                flag_min = False
+                flag_max = True
+                count += 1
 
                 if count==n_traps:
                     break
@@ -152,7 +152,7 @@ class TrapMetric:
         second_peak_indx = np.argmax(second_region_grad)
         second_peak = time[split_indx+second_peak_indx]
 
-        return(first_peak,split_time,second_peak)
+        return (first_peak, split_time, second_peak)
 
     # TODO: Document this. What is it cleaning out?
     def clean_data(self,time,l_grad,thresh_freq=1,bin_num=50,mode='hist'):
