@@ -419,6 +419,7 @@ class Optimizer:
                                 for r in range(len(local_kon)):
                                     local_kon[r]=self.rn.params_kon[r]
                                 k = torch.exp(self.rn.compute_log_constants(local_kon, self.rn.params_rxn_score_vec,scalar_modifier=1.))
+                                # Current learning rate
                                 curr_lr = self.optimizer.state_dict()['param_groups'][0]['lr']
                                 physics_penalty = torch.sum(100 * F.relu(-1 * (k - curr_lr * 10))).to(self.dev) # stops zeroing or negating params
                                 if optim=='yield':
