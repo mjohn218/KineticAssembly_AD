@@ -144,6 +144,7 @@ class TrapMetric:
                     break
         second_region_grad = l_grad[split_indx:eq_indx]
 
+        # Deprecated code for detecting flatness relative to arctan:
         # tan_inv = np.degrees(np.arctan(second_region_grad))
         # tan_thresh = np.degrees(np.arctan(np.max(l_grad[:split_indx])))
         # mask_inf = np.where(tan_inv>=tan_thresh)
