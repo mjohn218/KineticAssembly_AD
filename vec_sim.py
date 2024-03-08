@@ -30,7 +30,7 @@ class VecSim:
         - The simulation must be fully differentiable.
     """
 
-    def __init__(self, 
+    def __init__(self,
                  net: VectorizedRxnNet,
                  runtime: float,
                  device='cuda:0',
@@ -81,11 +81,11 @@ class VecSim:
         # Consider coupled rate constants, if specified
         self.coupled_kon = None
         if self.rn.rxn_coupling or self.rn.coupling:
-            self.coupled_kon = torch.zeros(len(self.rn.kon), 
+            self.coupled_kon = torch.zeros(len(self.rn.kon),
                                            requires_grad=True).double()
 
 
-    def simulate(self, 
+    def simulate(self,
                  optim='yield',
                  node_str=None,
                  verbose=False,
@@ -209,7 +209,7 @@ class VecSim:
                     l_conc_prod_vec = self.rn.get_log_copy_prod_vector()
             else:
                 l_conc_prod_vec = self.rn.get_log_copy_prod_vector()
-    
+
             # if self.rn.boolCreation_rxn:
                 # l_conc_prod_vec[-1]=torch.log(torch.pow(Tensor([0]),Tensor([1])))
             # print("Prod Conc: ",l_conc_prod_vec)
@@ -592,7 +592,7 @@ class VecSim:
             else:
                 return(final_yield.to(self.dev),(t50,t85,t95,t99))
 
-    def simulate_wrt_expdata(self, optim='yield',node_str=None,verbose=False,conc_scale=1.0,mod_factor=1.0,conc_thresh=1e-5,mod_bool=True,yield_species=-1):
+    def simulate_wrt_expdata(self, optim='yield',node_str=None,verbose=False,conc_scale=1.0,mod_factor=1.0,conc_thresh=1e-5,mod_bool=True,yield_species=-1,update_kon_bool=True):
         """
         modifies reaction network
         :return:
@@ -625,7 +625,110 @@ class VecSim:
         t50=-1
         t99=-1
 
-        l_k = self.rn.compute_log_constants(self.rn.kon, self.rn.rxn_score_vec, self._constant)
+
+        if self.rn.coupling:
+            if update_kon_bool:
+                #new_kon = torch.zeros(len(self.rn.kon), requires_grad=True).double()
+                # print("Coupling")
+                if self.rn.partial_opt:
+                    for i in range(len(self.rn.kon)):
+                        if i in self.rn.rx_cid.keys():
+                            all_rates=[]
+                            for rate in self.rn.rx_cid[i]:
+                                if rate in self.rn.optim_rates:
+                                    all_rates.append(self.rn.params_kon[self.rn.coup_map[rate]])
+                                else:
+                                    if self.rn.slow_rates is not None and rate in self.rn.slow_rates:
+                                        all_rates.append(torch.mean(self.rn.params_kon)/self.rn.slow_ratio)
+                                    else:
+                                        all_rates.append(self.rn.kon[rate])
+                            self.coupled_kon[i] = max(all_rates)
+                        else:
+                            if i in self.rn.optim_rates:
+                                self.coupled_kon[i] = self.rn.params_kon[self.rn.coup_map[i]]
+                            else:
+                                if (self.rn.slow_rates is not None) and (i in self.rn.slow_rates):
+                                    # print("Enter:")       #Can be replaced later so that the RN figures out by iteself which are fast  interfaces and which are slow.
+                                    self.coupled_kon[i] = torch.mean(self.rn.params_kon)/self.rn.slow_ratio
+                                else:
+                                    self.coupled_kon[i] = self.rn.kon[i]
+                    print("SLow rates: ",self.coupled_kon[self.rn.slow_rates])
+                    l_k = self.rn.compute_log_constants(self.coupled_kon,self.rn.rxn_score_vec, self._constant)
+
+
+                elif self.rn.dG_is_param:
+                    self.coupled_koff = torch.zeros(len(self.rn.kon), requires_grad=True).double()
+
+                    for i in range(len(self.rn.kon)):
+                        if i in self.rn.rx_cid.keys():
+                            map_rid = [self.rn.coup_map[rate] for rate in self.rn.rx_cid[i]]
+                            self.coupled_kon[i] = torch.max(self.rn.params_k[0][map_rid])
+                            self.coupled_koff[i] = torch.prod(self.rn.params_k[1][map_rid])/(self.rn._C0*torch.min(self.rn.params_k[0][map_rid]))
+
+                        else:
+                            self.coupled_kon[i] = self.rn.params_k[0][self.rn.coup_map[i]]
+                            self.coupled_koff[i] = self.rn.params_k[1][self.rn.coup_map[i]]
+                    l_k = torch.cat([torch.log(self.coupled_kon),torch.log(self.coupled_koff)], dim=0)
+                    # print("Rates: ",torch.exp(l_k))
+
+                else:
+                    for i in range(len(self.rn.kon)):
+                        # print(i)
+                        if i in self.rn.rx_cid.keys():
+                            #new_kon[i] = 1.0
+                            # self.coupled_kon[i] = max(self.rn.kon[rate] for rate in self.rn.rx_cid[i])
+                            self.coupled_kon[i] = max(self.rn.params_kon[self.rn.coup_map[rate]] for rate in self.rn.rx_cid[i])
+                            # print("Max rate for reaction %s chosen as %.3f" %(i,self.coupled_kon[i]))
+                            # self.coupled_kon[i].requires_grad = False
+                        else:
+                            # self.coupled_kon[i] = self.rn.kon[i]
+                            self.coupled_kon[i] = self.rn.params_kon[self.rn.coup_map[i]]
+                    l_k = self.rn.compute_log_constants(self.coupled_kon,self.rn.rxn_score_vec, self._constant)
+            else:
+                if self.rn.dG_is_param:
+                    l_k = torch.cat([torch.log(self.coupled_kon),torch.log(self.coupled_koff)], dim=0)
+                    # print("SIm rates: ",torch.exp(l_k))
+                else:
+                    l_k = self.rn.compute_log_constants(self.coupled_kon,self.rn.rxn_score_vec, self._constant)
+
+
+        elif self.rn.homo_rates and update_kon_bool:
+            if update_kon_bool:
+                if self.rn.dG_is_param:
+
+                    #Need to calculate the current dG from the new kon and koff. CUrrently this assumes we only have 1 variable off rate.
+                    #Can be modifed if we have multiple off rates as parameters. Then need to cal dG for every rid
+                    #Now only calc dG for a single rxn of class (1,1) mon+mon -> dim
+                    counter=0
+                    self.off_rates=torch.zeros(len(self.rn.kon), requires_grad=True).double()
+                    for k,rids in self.rn.rxn_class.items():
+                        if k==(1,1):
+                            dG = -1*torch.log(self.rn.params_k[0][counter]*self.rn._C0/self.rn.params_k[1][counter])
+
+                        for r in rids:
+                            self.rn.kon[r] = self.rn.params_k[0][counter].clone()
+                            # self.rn.rxn_score_vec[r] = self.rn.uid_newbonds_map[r]*dG
+                            self.off_rates[r] = self.rn.kon[r]*self.rn._C0*(self.rn.params_k[1]/(self.rn.params_k[0][0]*self.rn._C0))**self.rn.uid_newbonds_map[r]
+                        counter+=1
+                    # l_k = self.rn.compute_log_constants(self.rn.kon, self.rn.rxn_score_vec, self._constant)
+                    l_k = torch.cat([torch.log(self.rn.kon),torch.log(self.off_rates)], dim=0)
+
+                else:
+
+                    counter=0
+                    for k,rids in self.rn.rxn_class.items():
+                        for r in rids:
+                            self.rn.kon[r] = self.rn.params_kon[counter].clone()
+                        counter+=1
+                    l_k = self.rn.compute_log_constants(self.rn.kon, self.rn.rxn_score_vec, self._constant)
+                    # print("Simulation rates: ",torch.exp(l_k))
+            else:
+                if self.rn.dG_is_param:
+                    l_k = torch.cat([torch.log(self.rn.kon),torch.log(self.off_rates)], dim=0)
+                else:
+                    l_k = self.rn.compute_log_constants(self.rn.kon, self.rn.rxn_score_vec, self._constant)
+        else:
+            l_k = self.rn.compute_log_constants(self.rn.kon, self.rn.rxn_score_vec, self._constant)
         if verbose:
             print("Simulation rates: ",torch.exp(l_k))
 
@@ -633,8 +736,8 @@ class VecSim:
             conc_counter=1
 
             l_conc_prod_vec = self.rn.get_log_copy_prod_vector()
-
             l_rxn_rates = l_conc_prod_vec + l_k
+
             l_total_rate = torch.logsumexp(l_rxn_rates, dim=0)
             l_step = 0 - l_total_rate
             rate_step = torch.exp(l_rxn_rates + l_step)
@@ -773,6 +876,15 @@ class VecSim:
             print("Final Yield: ", final_yield)
 
         return(final_yield.to(self.dev),conc_tensor,(t50,t85,t95,t99))
+
+    def reset(self,runtime=None):
+        self.steps=[]
+        self.observables=self.rn.observables
+        self.rate_step_array=[]
+        self.cur_time=0
+        self.gradients =[]
+        if runtime is not None:
+            self.runtime = runtime
 
     def plot_observable(self,nodes_list, ax=None,flux=False,legend=True,seed=None,color_input=None,lw=1.0):
         t = np.array(self.steps)

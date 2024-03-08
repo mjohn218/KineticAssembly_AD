@@ -5,7 +5,7 @@ begin model
 
 begin parameters
     default_assoc   1.
-    monomer_add_only -1.
+    monomer_add_only False
     chaperone True
 end parameters
 

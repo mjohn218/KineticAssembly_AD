@@ -199,8 +199,8 @@ class Optimizer:
             plt.plot(steps,flux,label='Flux')
         #plt.ylim((0, 1))
         plt.title = 'Yield at each iteration'
-        plt.xlabel("Yield (%)")
-        plt.ylabel("Iterations")
+        plt.xlabel("Iterations")
+        plt.ylabel("Yield(%)")
         plt.show()
 
     def optimize(self,optim='yield',
@@ -798,7 +798,7 @@ class Optimizer:
 
 
 if __name__ == '__main__':
-    from steric_free_simulator import ReactionNetwork
+    from KineticAssembly_AD import ReactionNetwork
     base_input = './input_files/dimer.bngl'
     rn = ReactionNetwork(base_input, one_step=True)
     rn.reset()

@@ -156,8 +156,6 @@ class VectorizedRxnNet:
             for i in range(len(params_kon)):
                 self.params_kon[i].requires_grad_(True)
                 self.params_kon[i] = nn.Parameter(self.params_kon[i],requires_grad=True)
-            for i in range(len(params_kon)):
-                print("is Leaf: ",self.params_kon[i].is_leaf)
 
         elif self.homo_rates == True:
             self.params_kon = torch.zeros([len(self.rxn_class.keys())],requires_grad=True).double()
@@ -345,8 +343,8 @@ class VectorizedRxnNet:
 
             # init_copies = nn.Parameter(init_copies,requires_grad=True)
             # rates = nn.Parameter(rates, requires_grad=True)
-            print("Initial Copies: ",init_copies)
-            print("Initial Rates: ",rates)
+            # print("Initial Copies: ",init_copies)
+            # print("Initial Rates: ",rates)
             for i in range(len(init_copies)):
                 self.chap_params.append(nn.Parameter(init_copies[i],requires_grad=True))
                 self.initial_params.append(init_copies[i].clone().detach())
@@ -523,7 +521,7 @@ class VectorizedRxnNet:
                     M[n,reaction_id]=-1.
             for r_set in rn.get_reactant_sets(n):
                 r_tup = tuple(r_set)
-                print(r_tup)
+                # print(r_tup)
                 data = rn.network.get_edge_data(r_tup[0], n)
                 reaction_id = data['uid']
                 try:
@@ -572,7 +570,7 @@ class VectorizedRxnNet:
 
         # print(copies_vec)
 
-        print("Stoichiometric Matrix: ",M)
+        # print("Stoichiometric Matrix: ",M)
         print("Reaction rates: ",kon)
         print('dGs: ', rxn_score_vec)
         print("Species Concentrations: ",copies_vec)

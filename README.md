@@ -10,7 +10,7 @@ The easiest way to install the simulator is to clone this repo and then build an
 - Run `conda activate <env>` to activate the new environment.
 
 ## Documentation ##
-Detailed functionality and documentation can be found in the Jupyter Notebooks located in the `docs` directory. 
+Detailed functionality and documentation can be found in the Jupyter Notebooks located in the `docs` directory. A UserGuide is provided in the docs folder which desribes the requirements of an input file. Further detailed instructions on creating Reaction Networks, running simulations and optimization can be found within jupyter notebooks in the 'results' folder.
 You can start the Jupyter server by activating the conda environment and running the command `jupyter notebook`. This should open a browser window showing the current directory. You can then open the `docs` folder and then any of the notebooks therewithin.
 
 The module consists of the following components:
@@ -23,4 +23,4 @@ The module consists of the following components:
 - The `EnergyExplorer` class is somewhat separate. It takes as input a `ReactionNetwork` object and and a directory of .pdb files, one for each subunit monomer, and generates a list of approximate free energies for each of the pairwise reactions. Requires PyRosetta.
 
 ## Results ##
-Similar to the above, some initial results are contained in notebooks located in the `results` folder. 
+The 'results' folder contains jupyter notebooks for different types of optimization protocols as outlined in the paper. 

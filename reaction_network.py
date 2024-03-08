@@ -195,20 +195,17 @@ class ReactionNetwork:
             except ValueError:
                 init_pop = int(params[items[1]])
         if self.max_subunits>0:
-            print("Using multiGraph")
+            # print("Using multiGraph")
             state_net = nx.MultiGraph()
         else:
             state_net = nx.Graph()
         state_net.add_node(sp_info[0])
-        print(state_net.nodes())
-        print(init_pop)
         self.network.add_node(self._node_count, struct=state_net, copies=Tensor([float(init_pop)]),subunits=1)
         self._initial_copies[self._node_count] = Tensor([float(init_pop)])
         self._node_count += 1
 
     def parse_rule(self, line, params, seed=None, percent_negative=.5, score_range=100):
         items = re.split(r' |, ', line)
-        print("Parsing rule...")
         #Old split
         # r_info = re.split('\\(.\\)+.|\\(.\\)<->', items[0])
         #New split
@@ -222,7 +219,6 @@ class ReactionNetwork:
             react_1 = "".join(re.split('\\(.\!.\\)|\.',r_info[0]))
             react_2 = "".join(re.split('|\\(.\\)|\+',r_info[1]))
 
-            print(r_info)
         else:
             #If no bound reactants, then check if creation or destruction is present
             if 'null' in split_01:
@@ -399,26 +395,6 @@ class ReactionNetwork:
             return None
         else:
 
-            # print("Adding an new edge--",source_1,new_node)
-            # print("uid: ", self._rxn_count)
-
-            #Creates a rxn_class, dG_map and monomer rxn map.
-            #But it is based on number of bonds formed. Does not apply for different topologies
-            #Instead this is now handles by the create_rxn_class
-
-            # print("New bonds: ",template)
-            # if len(template) in self.rxn_class.keys():
-            #     self.rxn_class[len(template)].append(self._rxn_count)
-            # else:
-            #     self.rxn_class[len(template)] = [self._rxn_count]
-            # if len(template) == 1:
-            #     self.mon_rxn_map[template[0]]=self._rxn_count
-            # else:
-            #     rids = []
-            #     for reactants in template:
-            #         rids.append(self.mon_rxn_map[reactants])
-            #     self.dG_map[self._rxn_count] = rids
-
             dg_coop = sum([self.allowed_edges[tuple(sorted(e))][3] for e in template])
             self.network.add_edge(source_1, new_node,
                                   k_on=self.default_k_on,
@@ -456,6 +432,7 @@ class ReactionNetwork:
             if len(template) > new_edges_added:
                 print("The number of bonds formed are not compensated by the number of edges")
                 print("This could be possible due to presence of a repeating subunit")
+                print("SOurce1: ",source_1,source_2)
 
                 #There could be a lot of controls to check this
                 cmn_reactant = set(template[0])
@@ -511,9 +488,6 @@ class ReactionNetwork:
         add_to_graph = False
         complex_size = 0
         for poss_edge in list(self.allowed_edges.keys()):
-            # print(item.nodes())
-            # print([item.has_node(n) for n in poss_edge])
-            # print(item.has_edge(poss_edge[0], poss_edge[1]))
             if False not in [item.has_node(n) for n in poss_edge] and \
                     (n2 is None or
                      (True in [orig.has_node(n) for n in poss_edge] and
@@ -643,7 +617,7 @@ class ReactionNetwork:
 
                 #CHeck if one node is monomer
                 if orig.number_of_edges() ==0 or nextn.number_of_edges() ==0:
-                    print("One of the reactants is a monomer")
+                    # print("One of the reactants is a monomer")
 
                     n_edges = orig.number_of_edges() if orig.number_of_edges() else nextn.number_of_edges()
                     print(n_edges)
@@ -652,7 +626,7 @@ class ReactionNetwork:
 
 
                     if total_subunits <= self.max_subunits:
-                        print("There is room to add this subunit")
+                        # print("There is room to add this subunit")
 
                         complex_size=total_subunits
 
@@ -662,7 +636,7 @@ class ReactionNetwork:
                         e1 = orig.number_of_edges()
                         e2 = nextn.number_of_edges()
                         reactant_set = tuple([r1 for r1 in orig.nodes()] + [r2 for r2 in nextn.nodes()])    #A bit convoluted way of getting the node from each Graph. Have to individually loop over them and join.
-                        print("Reactant Set: ",reactant_set)
+                        # print("Reactant Set: ",reactant_set)
                         if reactant_set == poss_edge:
                             #If its a linear polymer. Then only one new bond is formed. Chain elongation
                             #Since we don't know if n1 is monomer or n2, right now just looping over both subunits to add bonds.
@@ -673,7 +647,7 @@ class ReactionNetwork:
                                 if total_subunits == self.max_subunits:
                                     #Checking if addition of one more subunit leads to max-subunits.
                                     #This means it is a loop closure. So add one more bond
-                                    print("LOOP CLOSUREEEEE")
+                                    # print("LOOP CLOSUREEEEE")
                                     new_bonds.append(poss_edge)
                                     connected_item.add_edge(poss_edge[1], poss_edge[0])
                                 print(connected_item.edges())
@@ -706,7 +680,7 @@ class ReactionNetwork:
                     #Both nodes are not monomers
                     # print("BOTH NODES ARE NOT MONOMERS!!")
                     if self.monomer_add_only == -1:
-                        print("NON-MONOMER ADDITION!!!!!")
+                        # print("NON-MONOMER ADDITION!!!!!")
                         #Only add reaction if user defined as adding rxn b/w non-monomers
 
                         #Before adding any edges, one modification has to be done in the new connected_item network graph
@@ -720,30 +694,27 @@ class ReactionNetwork:
 
                         total_subunits = n1[1]['subunits'] + n2[1]['subunits']
                         if total_subunits <= self.max_subunits:
-                            print("There is room to add this COMPLEX")
                             complex_size=total_subunits
                             reactant_set = tuple([r1 for r1 in orig.nodes()] + [r2 for r2 in nextn.nodes()])    #A bit convoluted way of getting the node from each Graph. Have to individually loop over them and join.
-                            print("Reactant Set: ",reactant_set)
-                            print(connected_item.edges())
                             if reactant_set == poss_edge:
                                 #If its a linear polymer. Then only one new bond is formed. Chain elongation
                                 #Since we don't know if n1 is monomer or n2, right now just looping over both subunits to add bonds.
                                 if self.max_interactions ==2:
-                                    print("NEW BOND ADDEDDDDDDD")
+
                                     new_bonds.append(poss_edge)
                                     connected_item.add_edge(poss_edge[1], poss_edge[0])
                                     if total_subunits == self.max_subunits:
                                         #Checking if addition of one more subunit leads to max-subunits.
                                         #This means it is a loop closure. So add one more bond
-                                        print("LOOP CLOSUREEEEE")
+
                                         new_bonds.append(poss_edge)
                                         connected_item.add_edge(poss_edge[1], poss_edge[0])
                                     print(connected_item.edges())
                                 else:
-                                    print("Forming bonds to achieve max interactions from each sub-unit")
+
                                     for i in range(n1[1]['subunits']):
                                         for j in range(n2[1]['subunits']):
-                                            print("NEW BOND ADDEDDDDDDD")
+
                                             new_bonds.append(poss_edge)
                                             connected_item.add_edge(poss_edge[1], poss_edge[0])
 
@@ -918,8 +889,7 @@ class ReactionNetwork:
 
 
 
-            print("Products:",products)
-            print("Reactants: ",r)
+
             self.optimize_species['enz-subs'].append(r)
 
             for p in products:

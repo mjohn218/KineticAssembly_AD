@@ -1,8 +1,5 @@
 import sys
-try:
-    from .energy_space_explorer import EnergyExplorer
-except (ModuleNotFoundError, NameError):
-    print('EnergyExplorer Module is not available. Check Rosetta installation.', sys.stderr)
+
 from .reaction_network import ReactionNetwork
 from .vectorized_rxn_net import VectorizedRxnNet
 from .vectorized_rxn_net_KinSim import VectorizedRxnNet_KinSim
@@ -12,10 +9,11 @@ from .optimizer import Optimizer
 from .EqSolver import EquilibriumSolver
 from .reaction_network import gtostr
 from .trap_metric import TrapMetric
+from .vectorized_rxn_net_exp import VectorizedRxnNetExp
+from .optimizer_exp import OptimizerExp
 
 
 __all__ = [
-    "EnergyExplorer",
     "ReactionNetwork",
     "VecSim",
     "VecKinSim",
@@ -23,6 +21,8 @@ __all__ = [
     "VectorizedRxnNet",
     "VectorizedRxnNet_KinSim",
     "EquilibriumSolver",
-    "TrapMetric"
+    "TrapMetric",
+    "VectorizedRxnNetExp",
+    "OptimizerExp"
 
 ]
