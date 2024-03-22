@@ -15,9 +15,10 @@ from torch import nn
 
 class VectorizedRxnNetExp (VectorizedRxnNet):
     """
-    Provides a lightweight class that represents the core information needed for
-    simulation as torch tensors. Acts as a base object for optimization simulations.
-    Data structure is performance optimized, not easily readable / accessible.
+    Provides a lightweight class that inherits core functionality from VectorizedRxnNet and adds the ability to
+    predict binding energies and association rates for a given reaction network. This class is designed to be used
+    in conjunction with the OptimizerExp class to optimize the association rates and binding energies of a reaction
+    network to fit experimental data.
 
     Units:
     units of Kon assumed to be [copies]-1 S-1, units of Koff S-1
