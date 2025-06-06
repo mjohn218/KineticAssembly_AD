@@ -85,7 +85,6 @@ class VectorizedRxnNet:
         self.homo_rates = rn.homo_rates
 
 
-
         if optim_rates is not None:
             self.partial_opt = True
             self.optim_rates = optim_rates
@@ -99,7 +98,11 @@ class VectorizedRxnNet:
         self.coup_map = {}
         self.rxn_class = rn.rxn_class
         self.dG_map = rn.dG_map
-
+        if rn.largest_complex == None:
+            rn.reset()
+            self.largest_complex = rn.largest_complex
+        else:
+            self.largest_complex = rn.largest_complex
         #Make new param Tensor (that will be optimized) if coupling is True
         if self.coupling == True:
             # c_rxn_count = len(rn.rxn_cid.keys())
@@ -408,6 +411,10 @@ class VectorizedRxnNet:
                 self.kon = nn.Parameter(self.initial_params.clone(), requires_grad=True)
         for key in self.observables:
             self.observables[key] = (self.observables[key][0], [])
+            
+        
+        
+        
 
     def get_params(self):
         if self.assoc_is_param and self.copies_is_param:
@@ -1062,3 +1069,5 @@ class VectorizedRxnNet:
         Keq = torch.prod(on_rates*self._C0/off_rates)
         dG = -1*torch.log(Keq)
         return(dG)
+    
+        

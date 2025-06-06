@@ -116,6 +116,7 @@ class ReactionNetwork:
         self.rxn_class = dict()     #Classifies reactions into number of bonds being formed. i.e. 1 bond - Dimer formation, 2-bonds - Trimer. Here dict format - no. of bonds:[list of uids]
         self.mon_rxn_map = dict()
         self.dG_map = dict()
+        self.largest_complex = None
 
     def get_params(self):
         """
@@ -199,6 +200,7 @@ class ReactionNetwork:
             state_net = nx.MultiGraph()
         else:
             state_net = nx.Graph()
+        
         state_net.add_node(sp_info[0])
         self.network.add_node(self._node_count, struct=state_net, copies=Tensor([float(init_pop)]),subunits=1)
         self._initial_copies[self._node_count] = Tensor([float(init_pop)])
@@ -324,6 +326,26 @@ class ReactionNetwork:
         fin_dex = len(self.network.nodes) - 1
         self.observables[fin_dex] = (gtostr(self.network.nodes[fin_dex]['struct']), [])
         self.flux_vs_time[fin_dex] = (gtostr(self.network.nodes[fin_dex]['struct']), [])
+        
+        #setting largest node
+        """
+        Scan through every node in self.network, look at data['subunits'], 
+        and set self.largest_complex to the node‐index with the largest 'subunits' value.
+        If the network is empty, largest_complex is set to None.
+        """
+        # If there are no nodes yet, bail out
+        if len(self.network.nodes) == 0:
+            self.largest_complex = None
+            return
+
+        # nodes(data=True) yields (node_index, node_data_dict)
+        # each node_data_dict has a 'subunits' key (an integer ≥ 1)
+        max_node = max(
+            self.network.nodes(data=True),
+            key=lambda item: item[1].get('subunits', 1)
+        )
+        # max_node is a tuple (node_index, data_dict); we only need the index
+        self.largest_complex = max_node[0]
 
     def intialize_activations(self, mode="middle"):
         """
@@ -954,6 +976,7 @@ class ReactionNetwork:
         :return:
         """
         new_nodes = list(self.network.nodes(data=True))
+        print(new_nodes)
         while len(new_nodes) > 0:
             node = new_nodes.pop(0)
             for anode in list(self.network.nodes(data=True)):
@@ -962,7 +985,7 @@ class ReactionNetwork:
                 if not self.is_hindered(node, anode):
                     new_nodes += self.match_maker(node, anode, self.is_one_step)
                 else:
-                    # print("Steric hindrance detected")
+                    #print("Steric hindrance detected")
                     #Now it means there is some steric hindrance (which is decided by the fact that a new subunit to be added is already present in the complex.
                     #This is where a complex with multiple repeating sub units have to be resolved or homo-oligomers.
                     #To control this addition, we have to deine the max repeating units in a complex. If not there is a chance this will keep on expanding the complex
@@ -985,7 +1008,6 @@ class ReactionNetwork:
 
 
             # must also try internal bonds
-            print("Trying internal bonds")
             new_nodes += self.match_maker(node,one_step=self.is_one_step)
 
         #Calculating dG of final complex
@@ -1020,6 +1042,7 @@ class ReactionNetwork:
 
         print("Reaction Network Completed")
 
+        
 if __name__ == '__main__':
     bngls_path = sys.argv[1]  # path to bngl
     dt = float(sys.argv[2])  # time step in seconds

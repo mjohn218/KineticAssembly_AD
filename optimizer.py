@@ -41,6 +41,8 @@ class Optimizer:
                 raise TypeError("Must be type ReactionNetwork or VectorizedRxnNetwork.")
         else:
             self.rn = reaction_network
+            
+        self.optimization_criteria = self.rn.largest_complex
         self.sim_runtime = sim_runtime
         param_itr = self.rn.get_params()
 
@@ -95,28 +97,20 @@ class Optimizer:
 
         self.lr = learning_rate
         self.optim_iterations = optim_iterations
-        self.sim_observables = []
         self.parameter_history = []
         self.yield_per_iter = []
-        self.flux_per_iter = []
         self.is_optimized = False
         self.dt = None
         self.final_solns = []
         self.final_yields = []
-        self.curr_time= []
         self.final_t50 = []
         self.final_t85 = []
         self.final_t95 = []
         self.final_t99 = []
-        self.final_unused_mon = []
-        self.dimer_max=[]
-        self.chap_max=[]
-        self.endtimes=[]
+        
         if lr_change_step is not None:
             if gamma == None:
                 gamma = 0.5
-            # self.scheduler = StepLR(self.optimizer,step_size=lr_change_step,gamma=gamma)
-            # self.scheduler = ReduceLROnPlateau(self.optimizer,'max',patience=30)
             if self.rn.assoc_is_param:
                 if self.rn.partial_opt:
                     self.scheduler = MultiplicativeLR(self.optimizer,lr_lambda=[self.creat_lambda for i in range(len(self.rn.params_kon))])
@@ -159,50 +153,23 @@ class Optimizer:
 
     def update_counter(self): # Currently does nothing
         lr_ct = 1
-        # if self.counter == len(self.rn.params_k):
-        #     self.counter=0
 
     def lambda_master(self, opt_itr):
         # update_counter()
-        # print("***** LAMBDA MASTER:  {:d}*****".format(self.lambda_counter))
-        # self.counter+=
         self.lambda_ct += 1
         return(torch.min(self.rn.params_k[self.lambda_ct % len(self.rn.params_k)]).\
                item() * self.lr_group[self.lambda_ct%len(self.rn.params_k)] / \
                 self.optimizer.state_dict()['param_groups'][self.lambda_ct % len(self.rn.params_k)]['lr'])
 
-    def plot_observable(self, iteration, nodes_list, ax=None):
-        t = self.sim_observables[iteration]['steps']
-
-        for key in self.sim_observables[iteration].keys():
-            if key == 'steps':
-                continue
-
-            elif self.sim_observables[iteration][key][0] in nodes_list:
-                data = np.array(self.sim_observables[iteration][key][1])
-                if not ax:
-                    plt.plot(t, data, label=self.sim_observables[iteration][key][0])
-                else:
-                    ax.plot(t, data, label=self.sim_observables[iteration][key][0])
-        lgnd = plt.legend(loc='best')
-        for i in range(len(lgnd.legendHandles)):
-            lgnd.legendHandles[i]._sizes = [30]
-        plt.title = 'Sim iteration ' + str(iteration)
-        plt.show()
-
     def plot_yield(self,flux_bool=False):
         steps = np.arange(len(self.yield_per_iter))
         data = np.array(self.yield_per_iter, dtype=np.float)
-        flux = np.array(self.flux_per_iter,dtype=np.float)
         plt.plot(steps, data,label='Yield')
-        if flux_bool:
-            plt.plot(steps,flux,label='Flux')
-        #plt.ylim((0, 1))
         plt.title = 'Yield at each iteration'
         plt.xlabel("Iterations")
         plt.ylabel("Yield(%)")
         plt.show()
-
+    
     def optimize(self,optim='yield',
                  node_str=None,
                  max_yield=0.5,
@@ -215,12 +182,16 @@ class Optimizer:
                  mod_bool=True,
                  verbose=False,
                  change_runtime=False,
-                 yield_species=-1,
+                 yield_species= None,
                  creat_yield=-1,
                  varBool=True,
                  chap_mode=1,
                  change_lr_yield=0.98,
                  var_thresh=10):
+        if yield_species == None:
+            yield_species = self.optimization_criteria
+        else:
+            print("Be careful about choosing yield_species; It defaults to the largest complex")
         print("Reaction Parameters before optimization: ")
         print(self.rn.get_params())
 
@@ -236,7 +207,6 @@ class Optimizer:
                 #Change the runtime so that the simulation is stopped after a certain number of molecules have been dumped.
                 final_conc = 100
                 #Get current rates of dumping
-                # min_rate = torch.min(self.rn.get_params()[0])
                 rates = np.array(self.rn.get_params())
                 titration_end = final_conc/rates
 
@@ -245,14 +215,12 @@ class Optimizer:
                 for r in range(len(rates)):
                     titration_time_map[self.rn.optim_rates[r]]  = titration_end[r]
                 self.rn.titration_time_map=titration_time_map
-                # print("Titration Map : ",self.rn.titration_end_time)
                 new_runtime = np.max(list(titration_time_map.values())) + self.sim_runtime
                 print("New Runtime:", new_runtime)
                 sim = self.sim_class(self.rn,
                                      new_runtime,
                                      device=self._dev_name,
                                      calc_flux=calc_flux_optim)
-                # print(sim.calc_flux)
             else:
                 sim = self.sim_class(self.rn,
                                      self.sim_runtime,
@@ -293,26 +261,11 @@ class Optimizer:
                                  mod_bool=mod_bool,
                                  verbose=verbose,
                                  yield_species=yield_species)
-            #print("Type/class of yield: ", type(total_yield))
-
+            
             #Check change in yield from last gradient step. Break if less than a tolerance
-            # if i > 1 and (total_yield - self.yield_per_iter[-1] >0 and total_yield - self.yield_per_iter[-1] < 1e-8):
-            #     counter+=1
-            #     print(total_yield,self.yield_per_iter[-1])
-            #     if counter >10 :
-            #         print("Max tolerance reached. Stopping optimization")
-            #         print('yield on sim iteration ' + str(i) + ' was ' + str(total_yield.item() * 100)[:4] + '%')
-            #         return self.rn
-            # else:
-            #     counter = 0
             self.yield_per_iter.append(total_yield.item())
-            # self.flux_per_iter.append(total_flux.item())
             # update tracked data
-            self.sim_observables.append(self.rn.observables.copy())
-            self.sim_observables[-1]['steps'] = np.array(sim.steps)
             self.parameter_history.append(self.rn.kon.clone().detach().to(torch.device('cpu')).numpy())
-
-
 
             if optim in ['yield', 'time']:
                 if optim == 'yield':
@@ -320,43 +273,11 @@ class Optimizer:
                 elif optim == 'time':
                     print(f'Yield on sim iteration {i} was {str(total_yield.item() * 100)[:4]}%' + \
                           '\tTime :', str(cur_time))
-                # print(self.rn.copies_vec)
-                # preform gradient step
                 if i != self.optim_iterations - 1:
-                    # if self.rn.coupling:
-                    #     k = torch.exp(self.rn.compute_log_constants(self.rn.params_kon, self.rn.params_rxn_score_vec,
-                    #                                             scalar_modifier=1.))
-                    #     physics_penalty = torch.sum(10 * F.relu(-1 * (k - self.lr * 10))).to(self.dev)  # stops zeroing or negating params
-                    #     cost = -total_yield + physics_penalty
-                    #
-                    #     cost.backward(retain_graph=True)
-                    # elif self.rn.partial_opt:
-                    #     k = torch.exp(self.rn.compute_log_constants(self.rn.params_kon, self.rn.params_rxn_score_vec,
-                    #                                             scalar_modifier=1.))
-                    #     physics_penalty = torch.sum(10 * F.relu(-1 * (k - self.lr * 10))).to(self.dev)  # stops zeroing or negating params
-                    #     cost = -total_yield + physics_penalty
-                    #
-                    #     cost.backward(retain_graph=True)
-                    # else:
-                    #     k = torch.exp(self.rn.compute_log_constants(self.rn.kon, self.rn.rxn_score_vec,
-                    #                                             scalar_modifier=1.))
-                    #     physics_penalty = torch.sum(10 * F.relu(-1 * (k - self.lr * 10))).to(self.dev)  # stops zeroing or negating params
-                    #     cost = -total_yield + physics_penalty
-
-                        # cost.backward()
                     if self.rn.coupling:
                         new_params = self.rn.params_kon.clone().detach()
-                        # for rc in range(len(self.rn.kon)):
-                        #     if rc in self.rn.cid.keys():
-                        #         self.rn.kon[rc] = self.rn.params_kon[self.rn.coup_map[self.rn.cid[rc]]]
-                        #     else:
-                        #         self.rn.kon[rc] = self.rn.params_kon[self.rn.coup_map[rc]]
                     elif self.rn.partial_opt and self.rn.assoc_is_param:
-                        # new_params = self.rn.params_kon.clone().detach()
                         new_params = [p.clone().detach() for p in self.rn.params_kon]
-                        # for r in range(len(self.rn.params_kon)):
-                        #     print("Is leaf : ",self.rn.params_kon[r].is_leaf, "Grad: ",self.rn.params_kon[r].requires_grad)
-                        #     self.rn.kon[self.rn.optim_rates[r]] = self.rn.params_kon[r]
                     elif self.rn.homo_rates and self.rn.assoc_is_param:
                         new_params = self.rn.params_kon.clone().detach()
                     elif self.rn.copies_is_param:
@@ -375,42 +296,32 @@ class Optimizer:
                             print("Current On rates:", torch.exp(k)[:len(self.rn.kon)])
                             new_params = [l.clone().detach() for l in self.rn.params_koff]
                     elif self.rn.dG_is_param:
-                        # print("Current On rates: ", torch.exp(k)[:len(self.rn.kon)])
-
                         if self.rn.dG_mode==1:
                             new_params = [l.clone().detach() for l in self.rn.params_k]
                         else:
                             new_params = [l.clone().detach() for l in self.rn.params_k]
-                            # new_params = self.rn.params_k.clone().detach()
                     else:
                         new_params = self.rn.kon.clone().detach()
-                    #print('New reaction rates: ' + str(self.rn.kon.clone().detach()))
-                    # new_params = self.rn.kon.clone().detach()
                     print('current params:', str(new_params))
                     #Store yield and params data
                     if total_yield-max_yield > 0:
                         if self.rn.chap_is_param:
-                            self.final_yields.append([total_yield,dimer_yield,chap_sp_yield])
-                            self.dimer_max.append(dimer_max)
-                            self.chap_max.append(chap_max)
-                            self.endtimes.append(endtime)
+                            self.final_yields.append([total_yield.item(),dimer_yield.item(),chap_sp_yield.item()])
+                            print(total_yield)
                         else:
-                            self.final_yields.append(total_yield)
+                            self.final_yields.append(total_yield.item())
+                            print(total_yield)
 
-                        self.final_solns.append(new_params)
-                        self.final_t50.append(total_flux[0])
-                        self.final_t85.append(total_flux[1])
-                        self.final_t95.append(total_flux[2])
-                        self.final_t99.append(total_flux[3])
-                        if self.rn.boolCreation_rxn:
-                            self.final_unused_mon.append(unused_monomer)
-                            self.curr_time.append(cur_time)
-
+                        self.final_solns.append(new_params.tolist())
+                        self.final_t50.append(total_flux[0].item() if isinstance(total_flux[0], torch.Tensor) else total_flux[0])
+                        self.final_t85.append(total_flux[1].item() if isinstance(total_flux[1], torch.Tensor) else total_flux[1])
+                        self.final_t95.append(total_flux[2].item() if isinstance(total_flux[2], torch.Tensor) else total_flux[2])
+                        self.final_t99.append(total_flux[3].item() if isinstance(total_flux[3], torch.Tensor) else total_flux[3])
                     if self.rn.assoc_is_param:
                         if self.rn.coupling:
                             k = torch.exp(self.rn.compute_log_constants(self.rn.params_kon, self.rn.params_rxn_score_vec,scalar_modifier=1.))
                             curr_lr = self.optimizer.state_dict()['param_groups'][0]['lr']
-                            physics_penalty = torch.sum(100 * F.relu(-1 * (k - curr_lr * 10))).to(self.dev) #+ torch.sum(10 * F.relu(1 * (k - max_thresh))).to(self.dev) # stops zeroing or negating params
+                            physics_penalty = torch.sum(100 * F.relu(-1 * (k - curr_lr * 10))).to(self.dev)
                             cost = -total_yield + physics_penalty
                             cost.backward(retain_graph=True)   #retain_graph = True only required for partial_opt + coupled model
                         elif self.rn.partial_opt:
@@ -479,11 +390,6 @@ class Optimizer:
                                 print("Var penalty: ",var_penalty,torch.var(k[:3]))
                             else:
                                 var_penalty=0
-                            # ratio_penalty = 1000*F.relu(1*((torch.max(k[3:])/torch.min(k[:3])) - 500 ))
-                            # print("Var penalty: ",var_penalty,torch.var(k[:3]))
-                            # print("Ratio penalty: ",ratio_penalty,torch.max(k[3:])/torch.min(k[:3]))
-
-                            # dimer_penalty = 10*F.relu(1*(k[16] - self.lr*20))+10*F.relu(1*(k[17] - self.lr*20))+10*F.relu(1*(k[18] - self.lr*20))
                             cost = -total_yield + physics_penalty + var_penalty #+ dimer_penalty#+ var_penalty #+ ratio_penalty
                             cost.backward()
                             # print("Grad: ",self.rn.kon.grad)
@@ -502,13 +408,8 @@ class Optimizer:
                             pen_copies[r] = self.rn.chap_params[r].clone()
                         for r in range(n_rxn_params):
                             pen_rates[r]= self.rn.chap_params[r+n_copy_params]
-                        # c = self.rn.chap_params[0].clone().detach()
-                        # k = self.rn.chap_params[1].clone().detach()
-                        physics_penalty = torch.sum(max_thresh * F.relu(-10 * (pen_copies-1))).to(self.dev) + torch.sum(max_thresh * F.relu(-1 * (pen_rates - 1e-2))).to(self.dev) #+ torch.sum(00 * F.relu(c-1e2)).to(self.dev)
+                        physics_penalty = torch.sum(max_thresh * F.relu(-10 * (pen_copies-1))).to(self.dev) + torch.sum(max_thresh * F.relu(-1 * (pen_rates - 1e-2))).to(self.dev)
                         print("Penalty: ",physics_penalty, "Dimer yield: ",dimer_yield,"ABT yield: ",chap_sp_yield)
-
-                        # cost = -total_yield + physics_penalty + 1*dimer_yield + 1*chap_sp_yield
-                        # cost = 1*chap_sp_yield #-total_yield #+1*dimer_yield
                         if chap_mode == 1:
                             cost = -total_yield-dimer_yield
                         elif chap_mode ==2:
@@ -570,23 +471,6 @@ class Optimizer:
 
                     self.optimizer.step()
 
-                    #print("Previous reaction rates: ",str(self.rn.kon.clone().detach()))
-
-
-
-
-            # elif optim =='flux':
-            #     print('Flux on sim iteration ' + str(i) + ' was ' + str(total_flux.item()))
-            #     # preform gradient step
-            #     if i != self.optim_iterations - 1:
-            #         k = torch.exp(self.rn.compute_log_constants(self.rn.kon, self.rn.rxn_score_vec,
-            #                                                     scalar_modifier=1.))
-            #         physics_penalty = torch.sum(10 * F.relu(-1 * (k - self.lr * 10))).to(self.dev)  # stops zeroing or negating params
-            #         cost = -total_flux + physics_penalty
-            #         cost.backward()
-            #         self.optimizer.step()
-            #         new_params = self.rn.kon.clone().detach()
-            #         print('current params: ' + str(new_params))
 
             elif optim == 'flux_coeff':
                 print("Optimizing Flux Correlations")
@@ -600,13 +484,6 @@ class Optimizer:
                         self.optimizer.step()
                         new_params = self.rn.kon.clone().detach()
                         print('current params: ' + str(new_params))
-
-                        # if total_yield-max_yield > 0:
-                        #     self.final_yields.append(total_yield)
-                        #     self.final_solns.append(new_params)
-
-
-
 
             values = psutil.virtual_memory()
             mem = values.available / (1024.0 ** 3)
@@ -633,7 +510,7 @@ class Optimizer:
                              conc_thresh=1e-5,
                              mod_bool=True,
                              verbose=False,
-                             yield_species=-1,
+                             yield_species=None,
                              conc_files_pref=None,
                              conc_files_range=[],
                              change_lr_yield=0.98,
@@ -684,10 +561,7 @@ class Optimizer:
                                              yield_species=yield_species)
 
                 self.yield_per_iter.append(total_yield.item())
-                # self.flux_per_iter.append(total_flux.item())
                 # update tracked data
-                self.sim_observables.append(self.rn.observables.copy())
-                self.sim_observables[-1]['steps'] = np.array(sim.steps)
                 self.parameter_history.append(self.rn.kon.clone().detach().to(torch.device('cpu')).numpy())
 
 
@@ -706,12 +580,12 @@ class Optimizer:
                         #Store yield and params data
                         if total_yield-max_yield > 0:
 
-                            self.final_yields.append(total_yield)
-                            self.final_solns.append(new_params)
-                            self.final_t50.append(total_flux[0])
-                            self.final_t85.append(total_flux[1])
-                            self.final_t95.append(total_flux[2])
-                            self.final_t99.append(total_flux[3])
+                            self.final_yields.append(total_yield.item())
+                            self.final_solns.append(new_params.tolist())
+                            self.final_t50.append(total_flux[0].item() if isinstance(total_flux[0], torch.Tensor) else total_flux[0])
+                            self.final_t85.append(total_flux[1].item() if isinstance(total_flux[1], torch.Tensor) else total_flux[1])
+                            self.final_t95.append(total_flux[2].item() if isinstance(total_flux[2], torch.Tensor) else total_flux[2])
+                            self.final_t99.append(total_flux[3].item() if isinstance(total_flux[3], torch.Tensor) else total_flux[3])
 
                         if self.rn.assoc_is_param:
                             k = torch.exp(self.rn.compute_log_constants(self.rn.kon, 
@@ -734,9 +608,6 @@ class Optimizer:
                             exp_time = np.array(rate_data['Timestep'][mask1])
 
                             exp_conc = np.array(rate_data['Conc'][mask1])
-
-                            # mse_tensor = torch.zeros(len(exp_time))
-                            # mse_tensor.requires_grad=True
                             mse=torch.Tensor([0.])
                             mse.requires_grad=True
                             total_time_diff = 0
@@ -746,11 +617,6 @@ class Optimizer:
                                 get_indx = time_diff.argmin()
                                 total_time_diff+=time_diff[get_indx]
                                 mse = mse+ (exp_conc[e_indx] - conc_array[get_indx])**2
-                                # mse_tensor[e_indx] = (exp_conc[e_indx] - conc_array[get_indx])**2
-
-
-                            # print(type(mse_tensor))
-                            # mse = mse/len(exp_time)
                             mse_mean = torch.mean(mse)
                             self.mse_error.append(mse_mean.item())
                             print("Total time diff: ",total_time_diff)
