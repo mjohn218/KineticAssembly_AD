@@ -1,0 +1,45 @@
+Problem with old code stemmed from the fact that is saved all results of the intermeadiate steps.
+
+
+Following list attributes were chnaged in the Optimizer class:
+self.yield_per_iter  (Stored as floats)
+self.sim_observables (Stored as a dict) chaged to (Stored at int and float)
+self.parameter_history  (Stored as numpy arrays)
+self.final_yields       (Stored as a list of Tensor)  changed to (Stored as a list of int)
+self.dimer_max           (Stored as a list of Tensor)  changed to (Stored as a list of int)
+self.chap_max            (Stored as a list of Tensor)  changed to (Stored as a list of int)
+self.endtimes            (Stored as a list of Tensor)  changed to (Stored as a list of int)
+self.final_solns        (Stored as a list of Tensor) changed to (Stored as a list of arr(2))
+self.final_t50        (Stored as a list of Tensor)    changed to (Stored as a list of int and float)
+self.final_t85        (Stored as a list of Tensor)    changed to (Stored as a list of int and float)
+self.final_t95        (Stored as a list of Tensor)    changed to (Stored as a list of int and float)
+self.final_t99        (Stored as a list of Tensor)    changed to (Stored as a list of int and float)
+self.final_unused_mon (Stored as a list of Tensor)  changed to (Stored as a list of int)
+self.curr_time        (Stored as a list of Tensor)  changed to (Stored as a list of int)
+self.flux_per_iter    (code was missing parts for incorporation of flux, got rid)
+
+Additionally:
+Deleted plot_observable method
+Deleted commented out parts
+
+
+Memory usage ~15Mb -> ~14kB at 100 iter or ~0.5Kb at 1,000 per iteration (Probably const, to check would need to run at 10^4, 10^5, 10^6 iter etc).
+
+IN TEMPLATES FOLDER:
+Optimization_Template block 11: changed expected types of yield and solutions info from tensor to arrays/floats/int
+
+IN TEST_RUNS FOLDER:
+trimer_Optimization block 11: changed expected types of yield and solutions info from tensor to arrays/floats/int
+trimer_predict_rates-Copy1 block 9: changed expected types of yield and solutions info from tensor to arrays/floats/int
+
+IN RESULTS FOLDER:
+IN RATEGROWTH FOLDER:
+ap2_maximization_new block9: changed expected types of yield and solutions info from tensor to arrays/floats/int
+ap2_maximization_new block10 original code did not work; made some changes for the graph to show up. Probably not a desired graph but at least it shows up
+AP2_Simulations_only block8: change %matplotlib notebook to %matplotlib inline
+
+IN EXPRATEPREDICTION FOLDER:
+Trimer_Simulations_only block 9: change %matplotlib notebook to %matplotlib inline; Delete block 13
+trimer_predict_rates block 8 ???
+Tetramer_GenerateSimdata block 9: change %matplotlib notebook to %matplotlib inline; Block 13: Missing a file
+

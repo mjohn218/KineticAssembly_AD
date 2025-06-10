@@ -65,6 +65,12 @@ class VectorizedRxnNet_KinSim:
         self.num_monomers = rn.num_monomers
         self.max_subunits = rn.max_subunits
         self.homo_rates = rn.homo_rates
+        if rn.largest_complex == None:
+            rn.reset()
+            self.largest_complex = rn.largest_complex
+        else:
+            self.largest_complex = rn.largest_complex
+
 
 
 

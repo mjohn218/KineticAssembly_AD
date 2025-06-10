@@ -1,0 +1,18 @@
+begin parameters
+    default_assoc   1.
+    homo_rates True
+end parameters
+
+begin species
+    A(a,b) 100.0
+    B(a,b) 100.0
+    C(a,b) 100.0
+    D(a,b) 100.0
+end species
+
+begin rules
+    A(a)+B(a)<->A(a!1).B(a!1) G=-20 
+    B(b)+C(b)<->B(b!1).C(b!1) G=-20 
+    C(a)+D(a)<->C(a!1).D(a!1) G=-20
+    D(b)+A(b)<->D(b!1).A(b!1) G=-20 
+end rules

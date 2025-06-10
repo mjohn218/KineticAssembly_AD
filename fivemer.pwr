@@ -1,0 +1,19 @@
+begin parameters
+    default_assoc   1.
+end parameters
+
+begin species
+    A(a,b) 100.0
+    B(a,b) 100.0
+    C(a,b) 100.0
+    D(a,b) 100.0
+    E(a,b) 100.0
+end species
+
+begin rules
+    A(b)+B(a)<->A(b!1).B(a!1) G=-20 
+    B(b)+C(a)<->B(b!1).C(a!1) G=-20
+    C(b)+D(a)<->C(b!1).D(a!1) G=-20
+    D(b)+E(a)<->D(b!1).E(a!1) G=-20
+    E(b)+A(a)<->E(b!1).A(a!1) G=-20
+end rules
