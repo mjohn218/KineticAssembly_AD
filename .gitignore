@@ -6,7 +6,7 @@ Icon?
 Thumbs.db
 *.DS_Store
 *~*
-
+*.pyc
 #IDE ANNOYING FILES#
 *.idea
 *.iml
