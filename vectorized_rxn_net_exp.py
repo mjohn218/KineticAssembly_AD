@@ -49,6 +49,11 @@ class VectorizedRxnNetExp (VectorizedRxnNet):
         self.assoc_is_param = assoc_is_param
         #Initialize Parameters for Experimental Optimization
         self.initialize_parameters()
+        if rn.largest_complex == None:
+            rn.reset()
+            self.largest_complex = rn.largest_complex
+        else:
+            self.largest_complex = rn.largest_complex
 
 
 
