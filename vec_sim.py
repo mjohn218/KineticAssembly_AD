@@ -119,7 +119,7 @@ class VecSim:
 
         # Update observables
         max_poss_yield = torch.min(self.rn.copies_vec[:self.rn.num_monomers].clone()).to(self.dev)
-
+        
         if self.rn.max_subunits !=-1:
             max_poss_yield = max_poss_yield/self.rn.max_subunits
             if verbose:
@@ -591,7 +591,8 @@ class VecSim:
                 return(final_yield.to(self.dev),dimer_yield_sum,chap_species_sum,dimer_max_yields_arr,chap_max_yields_arr,self.steps[-1],(t50,t85,t95,t99))
             else:
                 return(final_yield.to(self.dev),(t50,t85,t95,t99))
-
+        
+        
     def simulate_wrt_expdata(self, optim='yield',node_str=None,verbose=False,conc_scale=1.0,mod_factor=1.0,conc_thresh=1e-5,mod_bool=True,yield_species=-1,update_kon_bool=True):
         """
         modifies reaction network
@@ -611,7 +612,7 @@ class VecSim:
 
         # update observables
         max_poss_yield = torch.min(self.rn.copies_vec[:self.rn.num_monomers].clone()).to(self.dev)
-
+        
         if self.rn.max_subunits !=-1:
             max_poss_yield = max_poss_yield/self.rn.max_subunits
             if verbose:
