@@ -33,7 +33,8 @@ class Optimizer:
             device = 'cpu'
             # print("Using CPU")
         self._dev_name = device
-
+        #
+        
         self.sim_class = VecSim
         if type(reaction_network) is not VectorizedRxnNet:
             try:
