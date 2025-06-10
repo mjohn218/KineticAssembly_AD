@@ -10,6 +10,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.optim.lr_scheduler import MultiplicativeLR
 import random
 import pandas as pd
+import copy
 
 class Optimizer:
     def __init__(self, reaction_network,
@@ -107,6 +108,13 @@ class Optimizer:
         self.final_t85 = []
         self.final_t95 = []
         self.final_t99 = []
+        self.sim_observables_t = []
+        self.sim_observables_data = []
+        self.dimer_max=[]
+        self.chap_max=[]
+        self.endtimes=[]
+        self.final_unused_mon = []
+        self.curr_time= []
         
         if lr_change_step is not None:
             if gamma == None:
@@ -265,6 +273,16 @@ class Optimizer:
             #Check change in yield from last gradient step. Break if less than a tolerance
             self.yield_per_iter.append(total_yield.item())
             # update tracked data
+            self.yield_per_iter.append(total_yield.item())
+            
+            # update tracked data
+            self.sim_observables_t.append(np.array(sim.steps))
+            obs_copy = self.rn.observables.copy()
+            for key in obs_copy.keys():
+                self.sim_observables_data.append(np.array(obs_copy[key][1]))
+                 
+
+
             self.parameter_history.append(self.rn.kon.clone().detach().to(torch.device('cpu')).numpy())
 
             if optim in ['yield', 'time']:
@@ -307,6 +325,9 @@ class Optimizer:
                     if total_yield-max_yield > 0:
                         if self.rn.chap_is_param:
                             self.final_yields.append([total_yield.item(),dimer_yield.item(),chap_sp_yield.item()])
+                            self.dimer_max.append(dimer_max.item())
+                            self.chap_max.append(chap_max.item())
+                            self.endtimes.append(endtime.item())
                             print(total_yield)
                         else:
                             self.final_yields.append(total_yield.item())
@@ -317,6 +338,10 @@ class Optimizer:
                         self.final_t85.append(total_flux[1].item() if isinstance(total_flux[1], torch.Tensor) else total_flux[1])
                         self.final_t95.append(total_flux[2].item() if isinstance(total_flux[2], torch.Tensor) else total_flux[2])
                         self.final_t99.append(total_flux[3].item() if isinstance(total_flux[3], torch.Tensor) else total_flux[3])
+                        if self.rn.boolCreation_rxn:
+                            self.final_unused_mon.append(unused_monomer.item())
+                            self.curr_time.append(cur_time.item())
+
                     if self.rn.assoc_is_param:
                         if self.rn.coupling:
                             k = torch.exp(self.rn.compute_log_constants(self.rn.params_kon, self.rn.params_rxn_score_vec,scalar_modifier=1.))
@@ -470,6 +495,7 @@ class Optimizer:
                             print(param_groups['lr'])
 
                     self.optimizer.step()
+                    
 
 
             elif optim == 'flux_coeff':
@@ -482,9 +508,7 @@ class Optimizer:
                         cost = -total_yield + physics_penalty
                         cost.backward()
                         self.optimizer.step()
-                        new_params = self.rn.kon.clone().detach()
-                        print('current params: ' + str(new_params))
-
+                        
             values = psutil.virtual_memory()
             mem = values.available / (1024.0 ** 3)
             if mem < .5:
@@ -562,8 +586,13 @@ class Optimizer:
 
                 self.yield_per_iter.append(total_yield.item())
                 # update tracked data
-                self.parameter_history.append(self.rn.kon.clone().detach().to(torch.device('cpu')).numpy())
-
+                # update tracked data
+               
+                self.sim_observables_t.append(np.array(sim.steps))
+                obs_copy = self.rn.observables.copy()
+                for key in obs_copy.keys():
+                    self.sim_observables_data.append(np.array(obs_copy[key][1]))
+                  
 
                 if optim =='yield' or optim=='time':
                     if optim=='yield':
@@ -645,7 +674,7 @@ class Optimizer:
                                 print(param_groups['lr'])
 
                         self.optimizer.step()
-
+                       
 
                 values = psutil.virtual_memory()
                 mem = values.available / (1024.0 ** 3)
@@ -661,7 +690,19 @@ class Optimizer:
 
             del sim
 
-
+    def plot_observable(self, iteration, nodes_list, ax=None):
+        t = self.sim_observables_t[iteration]
+        data = self.sim_observables_data[iteration]
+        
+        if not ax:
+            plt.plot(t, data, label=self.sim_observables_data[iteration][key][0])
+        else:
+            ax.plot(t, data, label=self.sim_observables_data[iteration][key][0])
+        lgnd = plt.legend(loc='best')
+        for i in range(len(lgnd.legendHandles)):
+            lgnd.legendHandles[i]._sizes = [30]
+        plt.title = 'Sim iteration ' + str(iteration)
+        plt.show()
 
 if __name__ == '__main__':
     from KineticAssembly_AD import ReactionNetwork
