@@ -1,0 +1,41 @@
+begin model
+
+## Reserved Parameters::
+#   loop_coop: a list of loop cooperativity factors, one for each rule.
+
+begin parameters
+    default_assoc   1.
+    monomer_add_only True
+    homo_rates True
+end parameters
+
+begin species
+    A(a,b,c) 100.0 umol
+    C(a,b,c) 100.0 umol
+    B(a,b) 100.0 umol
+    D(a,b) 100.0 umol
+end species
+
+begin observables
+    full_complex    A(a!1,b!1,c!).B(a!1,b!1).C(a!1,b!1).D(a!1)
+    momomer_A   A(a,b,c)
+    monomer_B   B(a,b)
+    monomer_C   C(a,b)
+    monomer_D   D(a)
+end observables
+
+begin rules
+    A(a)+B(b)<->A(a!1).B(a!1)  G=-20.0
+    A(b)+C(a)<->A(b!1).C(a!1)  G=-20.0
+    A(c)+D(a)<->A(c!1).D(a!1)  G=-20.0
+    B(b)+C(b)<->B(b!1).C(b!1)  G=-20.0
+    B(c)+D(b)<->B(c!1).D(b!1)  G=-20.0
+    C(c)+D(b)<->C(c!1).D(b!1)  G=-20.0
+
+#    A(a)+B(b)<->A(a!1).B(a!1)  G=-13.15
+#    A(b)+C(a)<->A(b!1).C(a!1)  G=-13.67
+#    A(c)+D(a)<->A(c!1).D(a!1)  G=-13.67
+#    B(b)+C(b)<->B(b!1).C(b!1)  G=-13.67
+#    B(c)+D(b)<->C(c!1).D(b!1)  G=-13.67
+#    C(c)+D(b)<->C(c!1).D(b!1)  G=-52.16
+end rules
