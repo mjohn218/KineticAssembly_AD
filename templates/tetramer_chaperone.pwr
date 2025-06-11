@@ -1,0 +1,41 @@
+begin model
+
+## Reserved Parameters::
+#   loop_coop: a list of loop cooperativity factors, one for each rule.
+
+begin parameters
+    default_assoc   1.
+    monomer_add_only False
+    chaperone True
+end parameters
+
+begin species
+    A(a,b,c) 100.0 umol
+    M(a,b,c) 100.0 umol
+    B(a,b) 100.0 umol
+    S(a,b) 100.0 umol
+    X(a) 300.0 umol
+end species
+
+begin observables
+    full_complex    A(a!1,b!1,c!).B(a!1,b!1).M(a!1,b!1).S(a!1)
+    momomer_A   A(a,b,c)
+    monomer_B   B(a,b)
+    monomer_M   M(a,b)
+    monomer_D   S(a)
+end observables
+
+begin rules
+    A(a)+B(b)<->A(a!1).B(a!1)  G=-20
+    A(b)+M(a)<->A(b!1).M(a!1)  G=-20
+    A(c)+S(a)<->A(c!1).S(a!1)  G=-20
+    B(b)+M(b)<->B(b!1).M(b!1)  G=-20
+    B(c)+S(b)<->M(c!1).S(b!1)  G=-20
+    M(c)+S(b)<->M(c!1).S(b!1)  G=-20
+    
+    #Trimer Interface
+    A(a!1).B(a!1).M(b!1)+X(a)<->A(a)+B(b)+X(a)+M(b) G=-20
+    #Dimer Interface
+    A(a!1).B(a!1)+X(a)<->A(a)+B(b)+X(a) G=-20
+end rules
+                               
