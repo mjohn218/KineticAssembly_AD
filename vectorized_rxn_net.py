@@ -98,11 +98,7 @@ class VectorizedRxnNet:
         self.coup_map = {}
         self.rxn_class = rn.rxn_class
         self.dG_map = rn.dG_map
-        if rn.largest_complex == None:
-            rn.reset()
-            self.largest_complex = rn.largest_complex
-        else:
-            self.largest_complex = rn.largest_complex
+        
         #Make new param Tensor (that will be optimized) if coupling is True
         if self.coupling == True:
             # c_rxn_count = len(rn.rxn_cid.keys())
@@ -359,11 +355,20 @@ class VectorizedRxnNet:
 
             # self.initial_params.append(init_copies.clone().detach())
             # self.initial_params.append(rates.clone().detach())
+        
         self.observables = rn.observables
+        
+        if rn.largest_complex == None:
+            rn.reset()
+            self.largest_complex = rn.largest_complex
+        else:
+            self.largest_complex = rn.largest_complex
+            
         self.flux_vs_time = rn.flux_vs_time
         self.is_energy_set = rn.is_energy_set
         self.num_monomers = rn.num_monomers
         self.reaction_ids = []
+        
         self.reaction_network = rn
 
         print("Shifting to device: ", dev)
