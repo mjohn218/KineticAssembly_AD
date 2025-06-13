@@ -75,6 +75,8 @@ class Optimizer:
                 # param_list2 = []
 
                 for i in range(len(param_itr)):
+                    print(len(param_itr))
+                    print(len(learning_rate))
                     lr_val = torch.mean(param_itr[i]).item()*learning_rate[i]
                     if lr_val>=torch.min(param_itr[i]).item()*0.1:
                         lr_val = torch.min(param_itr[i]).item()*1
@@ -326,15 +328,15 @@ class Optimizer:
                     if total_yield-max_yield > 0:
                         if self.rn.chap_is_param:
                             self.final_yields.append([total_yield.item(),dimer_yield.item(),chap_sp_yield.item()])
-                            self.dimer_max.append(dimer_max.item())
-                            self.chap_max.append(chap_max.item())
-                            self.endtimes.append(endtime.item())
+                            self.dimer_max.append(dimer_max.item() if isinstance(dimer_max, torch.Tensor) else dimer_max)
+                            self.chap_max.append(chap_max.item() if isinstance(chap_max, torch.Tensor) else chap_max)
+                            self.endtimes.append(endtime)
                             print(total_yield)
                         else:
                             self.final_yields.append(total_yield.item())
                             print(total_yield)
 
-                        self.final_solns.append(new_params.tolist())
+                        self.final_solns.append(new_params.item() if isinstance(new_params, torch.Tensor) else new_params)
                         self.final_t50.append(total_flux[0].item() if isinstance(total_flux[0], torch.Tensor) else total_flux[0])
                         self.final_t85.append(total_flux[1].item() if isinstance(total_flux[1], torch.Tensor) else total_flux[1])
                         self.final_t95.append(total_flux[2].item() if isinstance(total_flux[2], torch.Tensor) else total_flux[2])
@@ -611,7 +613,7 @@ class Optimizer:
                         if total_yield-max_yield > 0:
 
                             self.final_yields.append(total_yield.item())
-                            self.final_solns.append(new_params.tolist())
+                            self.final_solns.append(new_params.item() if isinstance(new_params, torch.Tensor) else new_params)
                             self.final_t50.append(total_flux[0].item() if isinstance(total_flux[0], torch.Tensor) else total_flux[0])
                             self.final_t85.append(total_flux[1].item() if isinstance(total_flux[1], torch.Tensor) else total_flux[1])
                             self.final_t95.append(total_flux[2].item() if isinstance(total_flux[2], torch.Tensor) else total_flux[2])

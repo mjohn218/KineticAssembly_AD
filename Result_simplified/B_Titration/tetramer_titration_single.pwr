@@ -33,7 +33,7 @@ begin rules
     A(b)+M(a)<->A(b!1).M(a!1)  G=-20
     A(c)+S(a)<->A(c!1).S(a!1)  G=-20
     B(b)+M(b)<->B(b!1).M(b!1)  G=-20
-    B(c)+S(b)<->M(c!1).S(b!1)  G=-20
+    B(c)+S(b)<->B(c!1).S(b!1)  G=-20
     M(c)+S(b)<->M(c!1).S(b!1)  G=-20
 
 end rules

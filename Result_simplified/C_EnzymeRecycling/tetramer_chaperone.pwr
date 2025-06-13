@@ -5,15 +5,16 @@ begin model
 
 begin parameters
     default_assoc   1.
-    titration_time_int 100
-    monomer_add_only True
+    monomer_add_only False
+    chaperone True
 end parameters
 
 begin species
-    A(a,b,c) 0.0 umol
-    M(a,b,c) 0.0 umol
+    A(a,b,c) 100.0 umol
+    M(a,b,c) 100.0 umol
     B(a,b) 100.0 umol
     S(a,b) 100.0 umol
+    X(a) 300.0 umol
 end species
 
 begin observables
@@ -25,15 +26,16 @@ begin observables
 end observables
 
 begin rules
-    null<->A(a) G=0
-#    null<->B(a) G=0
-    null<->M(a) G=0
-#    null<->S(a) G=0
     A(a)+B(b)<->A(a!1).B(a!1)  G=-20
     A(b)+M(a)<->A(b!1).M(a!1)  G=-20
     A(c)+S(a)<->A(c!1).S(a!1)  G=-20
     B(b)+M(b)<->B(b!1).M(b!1)  G=-20
     B(c)+S(b)<->B(c!1).S(b!1)  G=-20
     M(c)+S(b)<->M(c!1).S(b!1)  G=-20
-
+    
+    #Trimer Interface
+    A(a!1).B(a!1).M(b!1)+X(a)<->A(a)+B(b)+X(a)+M(b) G=-20
+    #Dimer Interface
+    A(a!1).B(a!1)+X(a)<->A(a)+B(b)+X(a) G=-20
 end rules
+                               
