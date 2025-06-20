@@ -328,15 +328,16 @@ class Optimizer:
                     if total_yield-max_yield > 0:
                         if self.rn.chap_is_param:
                             self.final_yields.append([total_yield.item(),dimer_yield.item(),chap_sp_yield.item()])
-                            self.dimer_max.append(dimer_max.item() if isinstance(dimer_max, torch.Tensor) else dimer_max)
-                            self.chap_max.append(chap_max.item() if isinstance(chap_max, torch.Tensor) else chap_max)
+                            print("Dimer Max: ", dimer_max)
+                            self.dimer_max.append(dimer_max)
+                            self.chap_max.append(chap_max)
                             self.endtimes.append(endtime)
                             print(total_yield)
                         else:
                             self.final_yields.append(total_yield.item())
                             print(total_yield)
 
-                        self.final_solns.append(new_params.item() if isinstance(new_params, torch.Tensor) else new_params)
+                        self.final_solns.append(new_params)
                         self.final_t50.append(total_flux[0].item() if isinstance(total_flux[0], torch.Tensor) else total_flux[0])
                         self.final_t85.append(total_flux[1].item() if isinstance(total_flux[1], torch.Tensor) else total_flux[1])
                         self.final_t95.append(total_flux[2].item() if isinstance(total_flux[2], torch.Tensor) else total_flux[2])
@@ -349,7 +350,7 @@ class Optimizer:
                         if self.rn.coupling:
                             k = torch.exp(self.rn.compute_log_constants(self.rn.params_kon, self.rn.params_rxn_score_vec,scalar_modifier=1.))
                             curr_lr = self.optimizer.state_dict()['param_groups'][0]['lr']
-                            physics_penalty = torch.sum(100 * F.relu(-1 * (k - curr_lr * 10))).to(self.dev)
+                            physics_penalty = torch.sum(100 * F.relu(-1 * (self.rn.params_kon - curr_lr * 10))).to(self.dev)
                             cost = -total_yield + physics_penalty
                             cost.backward(retain_graph=True)   #retain_graph = True only required for partial_opt + coupled model
                         elif self.rn.partial_opt:
@@ -420,7 +421,6 @@ class Optimizer:
                                 var_penalty=0
                             cost = -total_yield + physics_penalty + var_penalty #+ dimer_penalty#+ var_penalty #+ ratio_penalty
                             cost.backward()
-                            # print("Grad: ",self.rn.kon.grad)
                     elif self.rn.copies_is_param:
                         c = self.rn.c_params.clone().detach()
                         physics_penalty = torch.sum(10 * F.relu(-1 * (c))).to(self.dev)# stops zeroing or negating params

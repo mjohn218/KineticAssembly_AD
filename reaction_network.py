@@ -320,12 +320,9 @@ class ReactionNetwork:
         self.observables = {}
         self.flux_vs_time = {}
         # add default observables
-        for i in range(self.num_monomers):
+        for i in range(len(self.network.nodes)):
             self.observables[i] = (gtostr(self.network.nodes[i]['struct']), [])
-            self.flux_vs_time[i] = (gtostr(self.network.nodes[i]['struct']), [])
-        fin_dex = len(self.network.nodes) - 1
-        self.observables[fin_dex] = (gtostr(self.network.nodes[fin_dex]['struct']), [])
-        self.flux_vs_time[fin_dex] = (gtostr(self.network.nodes[fin_dex]['struct']), [])
+
         
         #setting largest node
         """

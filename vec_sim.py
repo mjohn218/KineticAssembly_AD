@@ -172,15 +172,25 @@ class VecSim:
 
             else:
                 for i in range(len(self.rn.kon)):
-                    # print(i)
-                    if i in self.rn.rx_cid.keys():
-                        #new_kon[i] = 1.0
-                        # self.coupled_kon[i] = max(self.rn.kon[rate] for rate in self.rn.rx_cid[i])
-                        self.coupled_kon[i] = max(self.rn.params_kon[self.rn.coup_map[rate]] for rate in self.rn.rx_cid[i])
-                        # print("Max rate for reaction %s chosen as %.3f" %(i,self.coupled_kon[i]))
+                    if i in self.rn.rx_cid:
+                        rates = self.rn.rx_cid[i]
+                        indices = [self.rn.coup_map[rate] for rate in rates]
+                        values = self.rn.params_kon[indices]
+                        self.coupled_kon[i] = torch.max(values)
                     else:
-                        # self.coupled_kon[i] = self.rn.kon[i]
                         self.coupled_kon[i] = self.rn.params_kon[self.rn.coup_map[i]]
+               
+                # for i in range(len(self.rn.kon)):
+                #     # print(i)
+                #     if i in self.rn.rx_cid.keys():
+                #         #new_kon[i] = 1.0
+                #         # self.coupled_kon[i] = max(self.rn.kon[rate] for rate in self.rn.rx_cid[i])
+                #         self.coupled_kon[i] = max(self.rn.params_kon[self.rn.coup_map[rate]] for rate in self.rn.rx_cid[i])
+                #         # print("Max rate for reaction %s chosen as %.3f" %(i,self.coupled_kon[i]))
+                #     else:
+                #         # self.coupled_kon[i] = self.rn.kon[i]
+                #         self.coupled_kon[i] = self.rn.params_kon[self.rn.coup_map[i]]
+              
                 l_k = self.rn.compute_log_constants(self.coupled_kon,self.rn.rxn_score_vec, self._constant)
 
         elif self.rn.homo_rates:
