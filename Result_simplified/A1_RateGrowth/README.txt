@@ -17,6 +17,3 @@ In the Optimization notebook make sure to:
 - for higher mers the tield is not going to be high; as ooulined in the paper, the homorates cannot avoid trapping thus yield at 1 sec (sim_runtime=1) is not close to 100%.
 
 
-
-
-*There is no point in trying homorates for high mers as you cannot avoid trapping no matter how optimized the rates are
