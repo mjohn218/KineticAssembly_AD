@@ -272,7 +272,7 @@ class Optimizer:
                                  mod_bool=mod_bool,
                                  verbose=verbose,
                                  yield_species=yield_species)
-            
+                
             #Check change in yield from last gradient step. Break if less than a tolerance
             self.yield_per_iter.append(total_yield.item())
             # update tracked data
@@ -324,6 +324,7 @@ class Optimizer:
                     else:
                         new_params = self.rn.kon.clone().detach()
                     print('current params:', str(new_params))
+                    print('current ratio:', (new_params.max() / new_params.min()).item())
                     #Store yield and params data
                     if total_yield-max_yield > 0:
                         if self.rn.chap_is_param:
@@ -345,7 +346,7 @@ class Optimizer:
                         if self.rn.boolCreation_rxn:
                             self.final_unused_mon.append(unused_monomer.item())
                             self.curr_time.append(cur_time.item())
-
+                    print('current yield :', total_yield.item())
                     if self.rn.assoc_is_param:
                         if self.rn.coupling:
                             k = torch.exp(self.rn.compute_log_constants(self.rn.params_kon, self.rn.params_rxn_score_vec,scalar_modifier=1.))
@@ -478,8 +479,12 @@ class Optimizer:
                         # print(self.optimizer.state_dict)
                         cost.backward(retain_graph=True)
                         metric = torch.mean(self.rn.params_k[1].clone().detach()).item()
-
-
+                    print("Loss: ",cost.item())
+                    
+                    print('t50:', total_flux[0].item() * 100 * new_params.max().item() if isinstance(total_flux[0], torch.Tensor) else total_flux[0])
+                    print('t85:', total_flux[1].item() * 100 * new_params.max().item() if isinstance(total_flux[1], torch.Tensor) else total_flux[1])
+                    print('t95:', total_flux[2].item() * 100 * new_params.max().item() if isinstance(total_flux[2], torch.Tensor) else total_flux[2])
+                    print('t99:', total_flux[3].item() * 100 * new_params.max().item() if isinstance(total_flux[3], torch.Tensor) else total_flux[3])
                     # self.scheduler.step(metric)
                     if (self.lr_change_step is not None) and (total_yield>=change_lr_yield):
                         change_lr = True
