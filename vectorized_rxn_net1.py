@@ -104,70 +104,70 @@ class VectorizedRxnNet:
             # c_rxn_count = len(rn.rxn_cid.keys())
             if self.partial_opt:
                 c_rxn_count=len(self.optim_rates)
-                self.params_lkon = torch.zeros([c_rxn_count],requires_grad=True).double()
+                self.params_kon = torch.zeros([c_rxn_count],requires_grad=True).double()
                 self.params_rxn_score_vec = torch.zeros([c_rxn_count]).double()
                 rid=0
                 for i in range(c_rxn_count):
-                    self.params_lkon[rid] = torch.log(self.kon.clone().detach()[self.optim_rates[i]])
+                    self.params_kon[rid] = self.kon.clone().detach()[self.optim_rates[i]]
                     self.params_rxn_score_vec[rid] = self.rxn_score_vec[self.optim_rates[i]]
-                    self.coup_map[self.optim_rates[i]]=rid           #Map reaction index for independent reactions in self.kon to self.params_lkon. Used to set the self.kon from self.params_lkon
+                    self.coup_map[self.optim_rates[i]]=rid           #Map reaction index for independent reactions in self.kon to self.params_kon. Used to set the self.kon from self.params_kon
                     rid+=1
-                self.params_lkon.requires_grad_(True)
-                self.initial_params = Tensor(self.params_lkon).clone().detach()
+                self.params_kon.requires_grad_(True)
+                self.initial_params = Tensor(self.params_kon).clone().detach()
             else:
                 ind_rxn_count = len(rn.rxn_class[(1,1)])
-                self.params_lkon = torch.zeros([ind_rxn_count], requires_grad=True).double()   #Create param Tensor for only the independant reactions
+                self.params_kon = torch.zeros([ind_rxn_count], requires_grad=True).double()   #Create param Tensor for only the independant reactions
                 self.params_rxn_score_vec = torch.zeros([ind_rxn_count]).double()
                 #self.kon.requires_grad_(False)
                 rid=0
                 for i in range(ind_rxn_count):
                     # if i not in cid.keys():
                         ##Independent reactions
-                    self.params_lkon[rid] = torch.log(self.kon.clone().detach()[rn.rxn_class[(1,1)][i]])
+                    self.params_kon[rid] = self.kon.clone().detach()[rn.rxn_class[(1,1)][i]]
                     self.params_rxn_score_vec[rid] = self.rxn_score_vec[rn.rxn_class[(1,1)][i]]
-                    self.coup_map[rn.rxn_class[(1,1)][i]]=rid           #Map reaction index for independent reactions in self.kon to self.params_lkon. Used to set the self.kon from self.params_lkon
+                    self.coup_map[rn.rxn_class[(1,1)][i]]=rid           #Map reaction index for independent reactions in self.kon to self.params_kon. Used to set the self.kon from self.params_kon
                     rid+=1
-                self.params_lkon.requires_grad_(True)
+                self.params_kon.requires_grad_(True)
 
-                self.initial_params = Tensor(self.params_lkon).clone().detach()
+                self.initial_params = Tensor(self.params_kon).clone().detach()
         elif self.partial_opt == True and dissoc_is_param == False:
             c_rxn_count = len(self.optim_rates)
-            # self.params_lkon = torch.zeros([c_rxn_count], requires_grad=True).double()   #Create param Tensor for only the independant reactions
+            # self.params_kon = torch.zeros([c_rxn_count], requires_grad=True).double()   #Create param Tensor for only the independant reactions
             # self.params_rxn_score_vec = torch.zeros([c_rxn_count]).double()
             # for i in range(c_rxn_count):
-            #     self.params_lkon[i] = self.kon.clone().detach()[self.optim_rates[i]]
+            #     self.params_kon[i] = self.kon.clone().detach()[self.optim_rates[i]]
             #     self.params_rxn_score_vec[i] = self.rxn_score_vec[self.optim_rates[i]]
-            # self.params_lkon.requires_grad_(True)
-            # self.initial_params = Tensor(self.params_lkon).clone().detach()
+            # self.params_kon.requires_grad_(True)
+            # self.initial_params = Tensor(self.params_kon).clone().detach()
 
 
-            params_lkon = torch.zeros([c_rxn_count], requires_grad=True).double()
+            params_kon = torch.zeros([c_rxn_count], requires_grad=True).double()
             self.initial_params = []
             self.params_rxn_score_vec = torch.zeros([c_rxn_count]).double()
             for i in range(c_rxn_count):
-                params_lkon[i] = torch.log(self.kon.clone().detach()[self.optim_rates[i]])
+                params_kon[i] = self.kon.clone().detach()[self.optim_rates[i]]
                 self.params_rxn_score_vec[i] = self.rxn_score_vec[self.optim_rates[i]]
-                self.initial_params.append(torch.log(self.kon.clone().detach()[self.optim_rates[i]]))
-            self.params_lkon=[]
-            for i in range(len(params_lkon)):
-                print(params_lkon.clone().detach()[i])
-                self.params_lkon.append(params_lkon.clone().detach()[i])
-            for i in range(len(params_lkon)):
-                self.params_lkon[i].requires_grad_(True)
-                self.params_lkon[i] = nn.Parameter(self.params_lkon[i],requires_grad=True)
+                self.initial_params.append(self.kon.clone().detach()[self.optim_rates[i]])
+            self.params_kon=[]
+            for i in range(len(params_kon)):
+                print(params_kon.clone().detach()[i])
+                self.params_kon.append(params_kon.clone().detach()[i])
+            for i in range(len(params_kon)):
+                self.params_kon[i].requires_grad_(True)
+                self.params_kon[i] = nn.Parameter(self.params_kon[i],requires_grad=True)
 
         elif self.homo_rates == True:
-            self.params_lkon = torch.zeros([len(self.rxn_class.keys())],requires_grad=True).double()
+            self.params_kon = torch.zeros([len(self.rxn_class.keys())],requires_grad=True).double()
             self.params_rxn_score_vec = torch.zeros([len(self.rxn_class.keys())]).double()
             counter=0
             for k,rid in self.rxn_class.items():
 
-                self.params_lkon[counter] = torch.log(self.kon.clone().detach()[rid[0]])  ##Get the first uid of each class.Set that as the param for that class of rxns
+                self.params_kon[counter] = self.kon.clone().detach()[rid[0]]  ##Get the first uid of each class.Set that as the param for that class of rxns
                 self.params_rxn_score_vec[counter] = self.rxn_score_vec[rid[0]]
                 counter+=1
-            self.params_lkon.requires_grad_(True)
-            self.initial_params = Tensor(self.params_lkon).clone().detach()
-        '''elif dissoc_is_param:
+            self.params_kon.requires_grad_(True)
+            self.initial_params = Tensor(self.params_kon).clone().detach()
+        elif dissoc_is_param:
             if self.partial_opt == False:
                 # self.params_koff = torch.zeros([rn._rxn_count],requires_grad=True).double()             #kon from input; koff evaluated here
                 # self.params_koff = torch.exp(self.rxn_score_vec)*self.kon* self._C0
@@ -213,12 +213,12 @@ class VectorizedRxnNet:
             else:
                 c_rxn_count = len(self.optim_rates)
                 self.params_koff = torch.zeros([c_rxn_count],requires_grad=True).double()
-                self.params_lkon = torch.zeros([c_rxn_count], requires_grad=True).double()
+                self.params_kon = torch.zeros([c_rxn_count], requires_grad=True).double()
                 self.params_rxn_score_vec = torch.zeros([c_rxn_count]).double()
                 for i in range(c_rxn_count):
                     self.params_rxn_score_vec[i] = self.rxn_score_vec[self.optim_rates[i]]
-                    self.params_lkon[i] = self.kon.clone().detach()[self.optim_rates[i]]
-                    self.params_koff[i] = torch.exp(self.params_rxn_score_vec[i])*self.params_lkon[i]*self._C0
+                    self.params_kon[i] = self.kon.clone().detach()[self.optim_rates[i]]
+                    self.params_koff[i] = torch.exp(self.params_rxn_score_vec[i])*self.params_kon[i]*self._C0
                     self.params_koff = nn.Parameter(self.params_koff, requires_grad=True)
                     self.initial_params = Tensor(self.params_koff).clone().detach()
         elif dG_is_param:
@@ -297,11 +297,9 @@ class VectorizedRxnNet:
 
                 self.fixed_koff = self.kon*self._C0*torch.exp(self.rxn_score_vec)
 
-'''
+
         else:
-            self.params_lkon = Tensor(self.kon).clone().detach()
-            self.params_lkon.requires_grad_(True)
-            self.initial_params = Tensor(self.params_lkon).clone().detach()
+            self.initial_params = Tensor(self.kon).clone().detach()
         self.initial_copies = self.copies_vec.clone().detach()
         self.assoc_is_param = assoc_is_param
         self.copies_is_param = copies_is_param
@@ -310,14 +308,14 @@ class VectorizedRxnNet:
         self.chap_is_param=chap_is_param
         if assoc_is_param:
             if self.coupling:
-                self.params_lkon = nn.Parameter(self.params_lkon, requires_grad=True)
-            '''elif self.partial_opt:
-                # self.params_lkon = nn.Parameter(self.params_lkon, requires_grad=True)
-                self.kon.requires_grad_(True)'''
+                self.params_kon = nn.Parameter(self.params_kon, requires_grad=True)
+            elif self.partial_opt:
+                # self.params_kon = nn.Parameter(self.params_kon, requires_grad=True)
+                self.kon.requires_grad_(True)
             elif self.homo_rates:
-                self.params_lkon = nn.Parameter(self.params_lkon, requires_grad=True)
+                self.params_kon = nn.Parameter(self.params_kon, requires_grad=True)
             else:
-                self.params_lkon = nn.Parameter(self.params_lkon, requires_grad=True)
+                self.kon = nn.Parameter(self.kon, requires_grad=True)
         if copies_is_param:
             print("COPIES ARE PARAMS:::")
             self.c_params = nn.Parameter(self.initial_copies[:rn.num_monomers], requires_grad=True)
@@ -326,7 +324,7 @@ class VectorizedRxnNet:
             self.initial_params = []
 
             init_copies = torch.zeros((len(rn.chap_uid_map.keys())),requires_grad=True).double()   #No. of species
-            l_rates = torch.zeros((2*len(rn.chaperone_rxns)),requires_grad=True).double()    #chaperone_rxns is a list of tuples, where each tuple hold info about one chap rxn. And for one chap rxn there are two rates to optimize.
+            rates = torch.zeros((2*len(rn.chaperone_rxns)),requires_grad=True).double()    #chaperone_rxns is a list of tuples, where each tuple hold info about one chap rxn. And for one chap rxn there are two rates to optimize.
             c_indx = 0
             r_indx=0
             self.paramid_uid_map = {}
@@ -337,7 +335,7 @@ class VectorizedRxnNet:
                 self.paramid_copy_map[c_indx]=species
                 c_indx+=1
                 for id in sorted(uids):
-                    l_rates[r_indx] = torch.log(self.kon[id])
+                    rates[r_indx] = self.kon[id]
                     self.paramid_uid_map[r_indx]=id
 
                     r_indx+=1
@@ -350,8 +348,8 @@ class VectorizedRxnNet:
                 self.chap_params.append(nn.Parameter(init_copies[i],requires_grad=True))
                 self.initial_params.append(init_copies[i].clone().detach())
             for i in range(len(rates)):
-                self.chap_params.append(nn.Parameter(l_rates[i],requires_grad=True))
-                self.initial_params.append(l_rates[i].clone().detach())
+                self.chap_params.append(nn.Parameter(rates[i],requires_grad=True))
+                self.initial_params.append(rates[i].clone().detach())
             # self.chap_params.append(Tensor(init_copies))
             # self.chap_params.append(Tensor(rates))
 
@@ -389,14 +387,14 @@ class VectorizedRxnNet:
         # print("Initial copies: ", self.initial_copies.clone())
         if reset_params:
             if self.coupling:
-                self.params_lkon = nn.Parameter(self.initial_params.clone(), requires_grad=True)
+                self.params_kon = nn.Parameter(self.initial_params.clone(), requires_grad=True)
             elif self.partial_opt:
-                # self.params_lkon = nn.Parameter(self.initial_params.clone(), requires_grad=True)
+                # self.params_kon = nn.Parameter(self.initial_params.clone(), requires_grad=True)
                 for i in range(len(self.initial_params)):
-                    self.params_lkon[i] = nn.Parameter(self.initial_params[i].clone(),requires_grad=True)
+                    self.params_kon[i] = nn.Parameter(self.initial_params[i].clone(),requires_grad=True)
             elif self.homo_rates:
-                self.params_lkon = nn.Parameter(self.initial_params.clone(), requires_grad=True)
-            '''elif self.dissoc_is_param:
+                self.params_kon = nn.Parameter(self.initial_params.clone(), requires_grad=True)
+            elif self.dissoc_is_param:
                 # self.params_koff = nn.Parameter(self.initial_params.clone(), requires_grad=True)
                 # self.params_koff_01 = nn.Parameter(self.initial_params[0].clone(),requires_grad=True)
                 # self.params_koff_02 = nn.Parameter(self.initial_params[1].clone(),requires_grad=True)
@@ -409,13 +407,13 @@ class VectorizedRxnNet:
                 else:
                     for i in range(len(self.initial_params)):
                         self.params_k[i] = nn.Parameter(self.initial_params[i].clone(), requires_grad=True)
-                    # self.params_k = nn.Parameter(self.initial_params.clone(), requires_grad=True)'''
+                    # self.params_k = nn.Parameter(self.initial_params.clone(), requires_grad=True)
             elif self.chap_is_param:
                 for i in range(len(self.initial_params)):
                     self.chap_params[i] = nn.Parameter(self.initial_params[i].clone(), requires_grad=True)
 
             else:
-                self.params_lkon = nn.Parameter(self.initial_params.clone(), requires_grad=True)
+                self.kon = nn.Parameter(self.initial_params.clone(), requires_grad=True)
         for key in self.observables:
             self.observables[key] = (self.observables[key][0], [])
             
@@ -426,23 +424,23 @@ class VectorizedRxnNet:
     def get_params(self):
         if self.assoc_is_param and self.copies_is_param:
             if self.coupling:
-                return [self.params_lkon,self.c_params]
+                return [self.params_kon,self.c_params]
             elif self.partial_opt:
-                return [self.params_lkon,self.c_params]
+                return [self.params_kon,self.c_params]
             else:
                 return [self.kon, self.c_params]
         elif self.copies_is_param:
             return [self.c_params]
         elif self.assoc_is_param:
             if self.coupling:
-                return [self.params_lkon]
+                return [self.params_kon]
             elif self.partial_opt:
-                return self.params_lkon
+                return self.params_kon
             elif self.homo_rates:
-                return [self.params_lkon]
+                return [self.params_kon]
             else:
-                return [self.params_lkon]
-        '''elif self.dissoc_is_param:
+                return [self.kon]
+        elif self.dissoc_is_param:
             return self.params_koff
             # return [self.params_koff_01,self.params_koff_02]
         elif self.dG_is_param:
@@ -450,7 +448,7 @@ class VectorizedRxnNet:
                 return self.params_k
             else:
                 #return [self.params_k]
-                return self.params_k'''
+                return self.params_k
         elif self.chap_is_param:
             return self.chap_params
 
@@ -461,14 +459,14 @@ class VectorizedRxnNet:
 #        self._T = self._T.to(dev)
 #        self._C0 = self._C0.to(dev)
         if self.coupling:
-            self.params_lkon = nn.Parameter(self.params_lkon.data.clone().detach().to(dev), requires_grad=True)
+            self.params_kon = nn.Parameter(self.params_kon.data.clone().detach().to(dev), requires_grad=True)
         elif self.partial_opt and self.assoc_is_param:
-            # self.params_lkon = nn.Parameter(self.params_lkon.data.clone().detach().to(dev), requires_grad=True)
-            for i in range(len(self.params_lkon)):
-                self.params_lkon[i]=nn.Parameter(self.params_lkon[i].data.clone().detach().to(dev),requires_grad=True)
+            # self.params_kon = nn.Parameter(self.params_kon.data.clone().detach().to(dev), requires_grad=True)
+            for i in range(len(self.params_kon)):
+                self.params_kon[i]=nn.Parameter(self.params_kon[i].data.clone().detach().to(dev),requires_grad=True)
         elif self.homo_rates and self.assoc_is_param:
-            self.params_lkon = nn.Parameter(self.params_lkon.data.clone().detach().to(dev), requires_grad=True)
-        '''elif self.dissoc_is_param:
+            self.params_kon = nn.Parameter(self.params_kon.data.clone().detach().to(dev), requires_grad=True)
+        elif self.dissoc_is_param:
             # self.params_koff = nn.Parameter(self.params_koff.data.clone().detach().to(dev), requires_grad=True)
 
             # self.params_koff_01 = nn.Parameter(self.params_koff_01.data.clone().detach().to(dev),requires_grad=True)
@@ -484,12 +482,12 @@ class VectorizedRxnNet:
             else:
                 for i in range(len(self.params_k)):
                     self.params_k[i] = nn.Parameter(self.params_k[i].data.clone().detach().to(dev), requires_grad=True)
-                # self.params_k = nn.Parameter(self.params_k.data.clone().detach().to(dev), requires_grad=True)'''
+                # self.params_k = nn.Parameter(self.params_k.data.clone().detach().to(dev), requires_grad=True)
         elif self.chap_is_param:
             for i in range(len(self.chap_params)):
                 self.chap_params[i] = nn.Parameter(self.chap_params[i].data.clone().detach().to(dev), requires_grad=True)
         else:
-            self.params_lkon = nn.Parameter(self.params_lkon.data.clone().detach().to(dev), requires_grad=True)
+            self.kon = nn.Parameter(self.kon.data.clone().detach().to(dev), requires_grad=True)
         self.copies_vec = self.copies_vec.to(dev)
         self.initial_copies = self.initial_copies.to(dev)
         self.rxn_score_vec = self.rxn_score_vec.to(dev)
